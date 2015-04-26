@@ -9,6 +9,8 @@ import pickle
 import logging
 
 from common import utils
+from common import filename
+from features import preprocessing
 
 def get_arguments(argv):
 
@@ -39,7 +41,7 @@ def get_arguments(argv):
 if __name__ == '__main__':
     
     args = get_arguments(sys.argv[1:])
-    features = utils.get_feature_list(args.feature_list_file)
+    features = preprocessing.get_feature_list(args.feature_list_file)
 
     if args.debug:
         loglevel = logging.DEBUG
@@ -54,3 +56,7 @@ if __name__ == '__main__':
     if args.output_folder is not None and not os.path.isdir(args.output_folder):
         raise Exception("output folder %s doesn't exist." % (args.output_folder))
 
+
+    for emotion_id in args.emotion_ids:
+
+        emotion_name = filename.emotions.LJ40K[emotion_id]
