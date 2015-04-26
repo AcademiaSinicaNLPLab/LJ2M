@@ -105,6 +105,9 @@ class RandomIndex:
         if percent_train + percent_dev + percent_test != 100:
             raise ValueError("percent_train + percent_dev + percent_test should be 100")
 
+        if percent_train == 0:
+            raise ValueError("percent_train should not be zero")
+
         self.rate_train = float(percent_train)/100
         self.rate_dev = float(percent_dev)/100
         self.rate_test = float(percent_test)/100

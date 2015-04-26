@@ -54,15 +54,19 @@ if __name__ == '__main__':
     idx_dict = {}
     emotion_dirs = os.listdir(args.corpus_folder)
     for emotion in emotion_dirs:
-
+        
         emotion_dir = os.path.join(args.corpus_folder, emotion)
+
         ndoc = len(os.listdir(emotion_dir)) - 2     # minus . and ..
+        logger.info("emotion = %s, ndoc = %u", emotion, ndoc)
 
         set_dict = {}
         generator = RandomIndex(args.percent_train, args.percent_dev, args.percent_test)
         set_dict['train'], set_dict['dev'], set_dict['test'] = generator.shuffle(ndoc)
 
         idx_dict[emotion] = set_dict
+
+        logger.info("ntrain = %u, ndev = %u, ntest = %u", len(idx_dict[emotion]['train']), len(idx_dict[emotion]['dev']), len(idx_dict[emotion]['test']))
 
         assert ndoc == len(idx_dict[emotion]['train']) + len(idx_dict[emotion]['dev']) + len(idx_dict[emotion]['test'])
 
