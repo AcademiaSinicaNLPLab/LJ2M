@@ -12,7 +12,7 @@ import pickle
 import logging
 
 from features.preprocessing import RandomIndex
-
+from common import filename
 
 def get_arguments(argv):
 
@@ -53,7 +53,12 @@ if __name__ == '__main__':
 
     idx_dict = {}
     emotion_dirs = os.listdir(args.corpus_folder)
+
     for emotion in emotion_dirs:
+
+        # we only process the 40 emotions appeared in LJ40K
+        if emotion not in filename.emotions['LJ40K']:
+            continue
         
         emotion_dir = os.path.join(args.corpus_folder, emotion)
 

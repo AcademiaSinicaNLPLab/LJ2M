@@ -37,7 +37,7 @@ def get_arguments(argv):
     args = parser.parse_args(argv)
     return args
 
-
+    
 if __name__ == '__main__':
     
     args = get_arguments(sys.argv[1:])

@@ -1,5 +1,12 @@
 
+import sys
+sys.path.append('../')
+
 import logging
+
+from common import filename
+from common import utils
+
 
 def get_feature_list(feature_list_file):
     fp = open(feature_list_file, 'r')
@@ -7,7 +14,144 @@ def get_feature_list(feature_list_file):
     fp.close()
     return feature_list
 
-class Fuser:
+
+class RandomIndex:
+    """
+    """
+    def __init__(self, percent_train, percent_dev, percent_test):
+        """
+            rate_train, rate_dev, rate_test should in percentage
+        """
+        if percent_train + percent_dev + percent_test != 100:
+            raise ValueError("percent_train + percent_dev + percent_test should be 100")
+
+        if percent_train == 0:
+            raise ValueError("percent_train should not be zero")
+
+        self.rate_train = float(percent_train)/100
+        self.rate_dev = float(percent_dev)/100
+        self.rate_test = float(percent_test)/100
+
+    def shuffle(self, ndata):
+        """
+            return three lists (train_idx, dev_idx, test_idx)
+        """
+        import random
+
+        ntrain = long(ndata * self.rate_train)
+        ndev = long(ndata * self.rate_dev)
+        ntest = long(ndata * self.rate_test)
+
+        nremain = ndata - ntrain - ndev - ntest
+        if nremain != 0:
+            # we put the remains in the training set
+            ntrain += nremain
+
+        all_idx = range(ndata)
+        random.shuffle(all_idx)
+
+        train = all_idx[:ntrain]
+        dev = all_idx[ntrain:ntrain+ndev]
+        test = all_idx[ntrain+ndev:ntrain+ndev+ntest]
+
+        return (train, dev, test)
+
+
+class Dataset:
+    """
+        store train/dev/test datasets
+    """
+    def __init__(self, idx_dict, **kwargs):
+        """
+            idx_dict[emotion]['train']
+            idx_dict[emotion]['dev']
+            idx_dict[emotion]['test']
+
+            options:
+                loglevel
+        """
+        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+
+        self.idx_dict = idx_dict
+        self.Xs = {}
+
+    def loads(self, input_folder):
+
+        for emotion in filename.emotions['LJ2M']:
+            fpath = os.path.join(input_folder, filename.get_raw_data_file_name('', emotion))
+
+            # ToDo: match sven's structure
+            self.logger.info("load features from %s", fpath)
+            try:
+                raw_emotion = pickle.load(open(fpath, "r"))
+            except ValueError:
+                self.logger.error("failed to load %s" % (fpath))
+
+            X = {}
+            X['train'] = raw_emotion[self.idx_dict[emotion]['train']]
+            X['dev'] = raw_emotion[self.idx_dict[emotion]['dev']]
+            X['test'] = raw_emotion[self.idx_dict[emotion]['test']]
+            self.Xs[emotion] = X
+
+    def _get_set_by_emotions(self, emotion, set_type):
+        assert len(self.Xs) != 0 and len (self.Xs[emotion]) != 0
+        return self.Xs[emotion][set_type]
+
+    def get_training_set_by_emotion(self, emotion):
+        return self._get_set_by_emotions(emotion, 'train')
+
+    def get_dev_set_by_emotion(self, emotion):
+        return self._get_set_by_emotions(emotion, 'dev')
+
+    def get_testing_set_by_emotion(self, emotion):
+        return self._get_set_by_emotions(emotion, 'test')
+
+    def get_dataset_by_emotion(self, emotion):
+        return (self.get_training_set_by_emotion(emotion), self.get_dev_set_by_emotion(emotion), self.get_testing_set_by_emotion(emotion))
+
+    def _get_exclusive_emotions_set(self, set_type):
+        other_emotions = utils.get_unique_list_diff(filename.emotions['LJ2M'], filename.emotions['LJ40K'])
+
+        #for oe in other_emotions:
+        #    data = _get_set_by_emotions(oe, set_type)
+
+    def get_exclusive_emotions_train(self):
+        return self._get_exclusive_emotions_set('train')
+
+    def get_exclusive_emotions_dev(self):
+        return self._get_exclusive_emotions_set('dev')
+
+    def get_exclusive_emotions_test(self):
+        return self._get_exclusive_emotions_set('test')
+
+
+class FusedDataset:
+    """
+    """
+    def __init__(self):
+        self.feature_names = []
+        self.feature_dims = []
+        self.Xs = {}
+
+    def add_feature(self, feature_name, dataset):
+        pass
+
+    def get_training_set_by_emotion(self, emotion):
+        pass
+
+    def get_dev_set_by_emotion(self, emotion):
+        pass
+
+    def get_testing_set_by_emotion(self, emotion):
+        pass
+
+    def get_dataset_by_emotion(self, emotion):
+        return (self.get_training_set_by_emotion(emotion), self.get_dev_set_by_emotion(emotion), self.get_testing_set_by_emotion(emotion))
+
+
+class Fuser:    # ToDo: merge Dataset instances
     """
     Fuse features from .npz files
     usage:
@@ -95,45 +239,5 @@ class Fuser:
         idx_neg = [i for i, v in enumerate(y) if v<=0]
         return X[idx_pos], X[idx_neg]
 
-class RandomIndex:
-    """
-    """
-    def __init__(self, percent_train, percent_dev, percent_test):
-        """
-            rate_train, rate_dev, rate_test should in percentage
-        """
-        if percent_train + percent_dev + percent_test != 100:
-            raise ValueError("percent_train + percent_dev + percent_test should be 100")
-
-        if percent_train == 0:
-            raise ValueError("percent_train should not be zero")
-
-        self.rate_train = float(percent_train)/100
-        self.rate_dev = float(percent_dev)/100
-        self.rate_test = float(percent_test)/100
-
-    def shuffle(self, ndata):
-        """
-            return three lists (train_idx, dev_idx, test_idx)
-        """
-        import random
-
-        ntrain = long(ndata * self.rate_train)
-        ndev = long(ndata * self.rate_dev)
-        ntest = long(ndata * self.rate_test)
-
-        nremain = ndata - ntrain - ndev - ntest
-        if nremain != 0:
-            # we put the remains in the training set
-            ntrain += nremain
-
-        all_idx = range(ndata)
-        random.shuffle(all_idx)
-
-        train = all_idx[:ntrain]
-        dev = all_idx[ntrain:ntrain+ndev]
-        test = all_idx[ntrain+ndev:ntrain+ndev+ntest]
-
-        return (train, dev, test)
 
 

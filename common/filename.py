@@ -20,4 +20,15 @@ emotions['LJ2M'] = ['accomplished', 'aggravated', 'amused', 'angry', 'annoyed', 
                     'stressed', 'surprised', 'sympathetic', 'thankful', 'thirsty', 'thoughtful', 'tired', 'touched', 'uncomfortable', 'weird',
                     'working', 'worried']
 
+def get_raw_data_filename(prefix, emotion):
+     return '_'.joing([prefix, emotion, 'raw.npz'])
 
+# def get_train_data_filename(prefix, emotion):
+#      return '_'.joing([prefix, emotion, 'train.npz'])
+
+# def get_dev_data_filename(prefix, emotion):
+#      return '_'.joing([prefix, emotion, 'dev.npz'])
+
+# def get_test_data_filename(prefix, emotion):
+#      return '_'.joing([prefix, emotion, 'test.npz'])
+     

@@ -1,4 +1,6 @@
 
+def get_unique_list_diff(a, b):
+    return list(set(a) - set(b))
 
 def parse_range(astr):
     result = set()
