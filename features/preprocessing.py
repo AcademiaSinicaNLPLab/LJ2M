@@ -61,7 +61,7 @@ class Dataset:
     """
         store train/dev/test datasets
     """
-    def __init__(self, idx_dict, **kwargs):
+    def __init__(self, idx_dict, input_folder, **kwargs):
         """
             idx_dict[emotion]['train']
             idx_dict[emotion]['dev']
@@ -77,9 +77,8 @@ class Dataset:
         self.idx_dict = idx_dict
         self.Xs = {}
 
-    def loads(self, input_folder):
-
-        for emotion in filename.emotions['LJ2M']:
+        # we only take the 40 emotions appeared in the LJ40K
+        for emotion in filename.emotions['LJ40K']:
             fpath = os.path.join(input_folder, filename.get_raw_data_file_name('', emotion))
 
             # ToDo: match sven's structure

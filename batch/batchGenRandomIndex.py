@@ -13,6 +13,7 @@ import logging
 
 from features.preprocessing import RandomIndex
 from common import filename
+from common import utils
 
 def get_arguments(argv):
 
@@ -75,7 +76,4 @@ if __name__ == '__main__':
 
         assert ndoc == len(idx_dict[emotion]['train']) + len(idx_dict[emotion]['dev']) + len(idx_dict[emotion]['test'])
 
-    try:
-        pickle.dump(idx_dict, open(args.output_filename, "w"))
-    except ValueError:
-        logger.error("failed to dump %s" % (args.output_filename))
+    utils.save_pkl_file(idx_dict, args.output_filename)

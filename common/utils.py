@@ -1,4 +1,20 @@
 
+import pickle
+import logging
+
+def save_pkl_file(clz, filename):
+    try:
+        pickle.dump(clz, open(filename, "w"))
+    except ValueError:
+        logging.error("failed to dump %s" % (filename))
+
+def load_pkl_file(filename):
+    try:
+        return pickle.load(open(filename, "r"))
+    except ValueError:
+        logging.error("failed to load %s" % (filename))
+
+
 def get_unique_list_diff(a, b):
     return list(set(a) - set(b))
 
