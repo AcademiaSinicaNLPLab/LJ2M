@@ -65,10 +65,10 @@ if __name__ == '__main__':
     idxs = utils.load_pkl_file(args.index_file)
 
     # create fused dataset
-    fused_dataset = preprocessing.FusedDataset()
-
+    fused_dataset = preprocessing.FusedDataset(idxs, loglevel=loglevel)
+    import pdb; pdb.set_trace()
     for feature_name, data_path in feature_list:
-        dataset = preprocessing.Dataset(idxs, data_path, loglevel=loglevel)
+        dataset = preprocessing.Dataset(data_path, loglevel=loglevel)
         fused_dataset.add_feature(feature_name, dataset)
 
 
@@ -78,7 +78,8 @@ if __name__ == '__main__':
         emotion_name = filename.emotions['LJ40K'][emotion_id]
         logger.info('training model for emotion "%s"' % emotion_name)
 
-        
+        X_train, y_train = fused_dataset.get_dataset(emotion_name, 'train')
+
 
 
 

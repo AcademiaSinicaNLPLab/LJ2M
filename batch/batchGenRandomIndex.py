@@ -52,15 +52,13 @@ if __name__ == '__main__':
     logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel) 
     logger = logging.getLogger(__name__)
 
-    idx_dict = {}
-
     # we only need 40 emotions appeared in LJ40K    
     emotion_dirs = filename.emotions['LJ40K']
     #emotion_dirs = os.listdir(args.corpus_folder)
 
     generator = RandomIndex(args.percent_train, args.percent_dev, args.percent_test)
-    set_dict = {}
-    set_dict['train'], set_dict['dev'], set_dict['test'] = generator.shuffle(args.corpus_folder, emotion_dirs)
+    idx_dict = {}
+    idx_dict['train'], idx_dict['dev'], idx_dict['test'] = generator.shuffle(args.corpus_folder, emotion_dirs)
 
     logger.info("dumping file to %s" % (args.output_filename))
     utils.save_pkl_file(idx_dict, args.output_filename)

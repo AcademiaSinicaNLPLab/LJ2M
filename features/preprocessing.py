@@ -72,12 +72,8 @@ class Dataset:
     """
         store train/dev/test datasets
     """
-    def __init__(self, idx_dict, data_path, **kwargs):
+    def __init__(self, data_path, **kwargs):
         """
-            idx_dict[emotion]['train']
-            idx_dict[emotion]['dev']
-            idx_dict[emotion]['test']
-
             options:
                 loglevel
         """
@@ -85,91 +81,158 @@ class Dataset:
         logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
-        self.idx_dict = idx_dict
-        self.Xs_pos = {}
-        self.Xs_neg = {}
+        # only use 40 emotions
+        self.emotions = filename.emotions['LJ40K']
+        self.X = {}
 
-        for emotion in filename.emotions['LJ40K']:
+        for emotion in self.emotions:
+
             fpath = FeatureList.get_full_data_path(emotion, data_path)
-
             self.logger.info("load features from %s", fpath)
             try:
                 Xy = pickle.load(open(fpath, "r"))
             except ValueError:
                 self.logger.error("failed to load %s" % (fpath))
 
-            X = np.zeros((len(Xy),300),dtype="float32")
-            # ToDo: concatenating numpy array wastes too many times, so we need do it when generating pkl
+            self.X[emotion] = np.zeros((len(Xy), 300), dtype="float32")
             for i in range(len(Xy)):    
                 # make sure only one feature vector in each doc
                 assert Xy[i]['X'].shape[0] == 1                
-                X[i] = Xy[i]['X']
-                self.logger.info("X.shapae = %s", X.shape)
+                self.X[emotion][i] = Xy[i]['X']
 
-            X_dict['train'] = X[self.idx_dict[emotion]['train']]
-            X_dict['dev'] = X[self.idx_dict[emotion]['dev']]
-            X_dict['test'] = X[self.idx_dict[emotion]['test']]
-            self.Xs_pos[emotion] = X_dict
+    def get_dataset(self, emotion, idxs, set_type):
 
-            import pdb; pdb.set_trace()
+        idxs_type = idxs[set_type]
 
-    def _get_negative_examples(self, emotion_pos, set_type):
-        """
-            algorithm (for all train/dev/test):
-                1. we aim to find the same number of negative examples as positives
-                2. n_pos / 39 = number of negative exampel retrieved from each of other 39 emotions
-                3. stack 39 groups together
-        """
-        pass
+        import pdb; pdb.set_trace()
+        X = self.X[emotion][idxs_type[emotion][emotion]]
+        y = [emotion]*X.shape[0]
 
-    def _get_set_by_emotions(self, emotion, set_type):
-        assert len(self.Xs) != 0 and len (self.Xs[emotion]) != 0
+        #for neg_emotion in list(set(self.emotoins) - set([emotion])):
 
-        negs = self._get_negative_examples(emotion, set_type)
 
-        #negs
-        #+
-        #self.Xs_pos[emotion][set_type]
 
-        #return self.Xs_pos[emotion][set_type]
+        
 
-    def get_training_set_by_emotion(self, emotion):
-        return self._get_set_by_emotions(emotion, 'train')
 
-    def get_dev_set_by_emotion(self, emotion):
-        return self._get_set_by_emotions(emotion, 'dev')
+            # n_pos = {}
+            # n_neg = {}
+            # X = {}
+            # y = []
 
-    def get_testing_set_by_emotion(self, emotion):
-        return self._get_set_by_emotions(emotion, 'test')
+            # for set_type in ['train', 'dev', 'test']:
+            #     n_pos[set_type], n_neg[set_type] = self._get_example_sizes(self.idx_dict[set_type], self.emotions, emotion)
 
-    def get_dataset_by_emotion(self, emotion):
-        return (self.get_training_set_by_emotion(emotion), self.get_dev_set_by_emotion(emotion), self.get_testing_set_by_emotion(emotion))
+            #     X[]
 
-    def _get_exclusive_emotions_set(self, set_type):
-        other_emotions = utils.get_unique_list_diff(filename.emotions['LJ2M'], filename.emotions['LJ40K'])
 
-        #for oe in other_emotions:
-        #    data = _get_set_by_emotions(oe, set_type)
+            # #n_pos['train'], n_neg['train'] = self._get_example_sizes(self.idx_dict['train'], self.emotions, emotion)
+            # #n_pos['dev'], n_neg['dev'] = self._get_example_sizes(self.idx_dict['dev'], self.emotions, emotion)
+            # #n_pos['test'], n_neg['test'] = self._get_example_sizes(self.idx_dict['test'], self.emotions, emotion)
 
-    def get_exclusive_emotions_train(self):
-        return self._get_exclusive_emotions_set('train')
+            
 
-    def get_exclusive_emotions_dev(self):
-        return self._get_exclusive_emotions_set('dev')
+            # assert n_pos['train'] + n_pos['dev'] + n_pos['test'] == len(Xy)
 
-    def get_exclusive_emotions_test(self):
-        return self._get_exclusive_emotions_set('test')
+
+
+
+
+            # X_train = np.zeros((npos+nneg, 300), dtype="float32")
+            # y_train = []
+            # X_dev = 
+            
+            # for i in range(npos)):    
+            #     # make sure only one feature vector in each doc
+            #     assert Xy[i]['X'].shape[0] == 1                
+            #     X[i] = Xy[i]['X']
+            #     self.logger.info("X.shapae = %s", X.shape)
+
+            # X_dict['train'] = X[self.idx_dict[emotion]['train']]
+            # X_dict['dev'] = X[self.idx_dict[emotion]['dev']]
+            # X_dict['test'] = X[self.idx_dict[emotion]['test']]
+            # self.Xs_pos[emotion] = X_dict
+
+            # import pdb; pdb.set_trace()
+
+    # def _get_example_sizes(self, idxs, emotions, emotion):
+
+    #     n_pos = len(idxs[emotion][emotion])
+    #     n_neg = 0
+    #     for neg_emotion in emotions:
+    #         if neg_emotion == emotion:
+    #             continue
+    #         n_neg += len(idxs[emotion][neg_emotion])
+
+    #     return n_pos, n_neg
+
+    # def _get_negative_examples(self, emotion_pos, set_type):
+    #     """
+    #         algorithm (for all train/dev/test):
+    #             1. we aim to find the same number of negative examples as positives
+    #             2. n_pos / 39 = number of negative exampel retrieved from each of other 39 emotions
+    #             3. stack 39 groups together
+    #     """
+    #     pass
+
+    # def _get_set_by_emotions(self, emotion, set_type):
+    #     assert len(self.Xs) != 0 and len (self.Xs[emotion]) != 0
+
+    #     negs = self._get_negative_examples(emotion, set_type)
+
+    #     #negs
+    #     #+
+    #     #self.Xs_pos[emotion][set_type]
+
+    #     #return self.Xs_pos[emotion][set_type]
+
+    # def get_training_set_by_emotion(self, emotion):
+    #     return self._get_set_by_emotions(emotion, 'train')
+
+    # def get_dev_set_by_emotion(self, emotion):
+    #     return self._get_set_by_emotions(emotion, 'dev')
+
+    # def get_testing_set_by_emotion(self, emotion):
+    #     return self._get_set_by_emotions(emotion, 'test')
+
+    # def get_dataset_by_emotion(self, emotion):
+    #     return (self.get_training_set_by_emotion(emotion), self.get_dev_set_by_emotion(emotion), self.get_testing_set_by_emotion(emotion))
+
+    # def _get_exclusive_emotions_set(self, set_type):
+    #     other_emotions = utils.get_unique_list_diff(filename.emotions['LJ2M'], filename.emotions['LJ40K'])
+
+    #     #for oe in other_emotions:
+    #     #    data = _get_set_by_emotions(oe, set_type)
+
+    # def get_exclusive_emotions_train(self):
+    #     return self._get_exclusive_emotions_set('train')
+
+    # def get_exclusive_emotions_dev(self):
+    #     return self._get_exclusive_emotions_set('dev')
+
+    # def get_exclusive_emotions_test(self):
+    #     return self._get_exclusive_emotions_set('test')
 
 
 class FusedDataset:
     """
         fuse different features
     """
-    def __init__(self, **kwargs):
+    def __init__(self, idxs, **kwargs):
+        """
+            idxs['train'][emotion][emotion]
+            idxs['dev'][emotion][emotion]
+            idxs['test'][emotion][emotion]
+
+            options:
+                loglevel
+        """
+
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
         logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
+        self.idxs = idxs
         self.feature_name = []
         self.datasets = []
 
@@ -177,17 +240,26 @@ class FusedDataset:
         self.feature_name.append(feature_name)
         self.datasets.append(dataset)
 
-    def get_training_set_by_emotion(self, emotion):
-        pass
+    def get_dataset(self, emotion, set_type):
 
-    def get_dev_set_by_emotion(self, emotion):
-        pass
+        for dataset in self.datasets:
+            X, y = dataset.get_dataset(emotion, self.idxs, set_type)
 
-    def get_testing_set_by_emotion(self, emotion):
-        pass
+            # ToDo: concat X in row for dif features
 
-    def get_dataset_by_emotion(self, emotion):
-        return (self.get_training_set_by_emotion(emotion), self.get_dev_set_by_emotion(emotion), self.get_testing_set_by_emotion(emotion))
+        return X, y
+
+    # def get_training_set_by_emotion(self, emotion):
+    #     pass
+
+    # def get_dev_set_by_emotion(self, emotion):
+    #     pass
+
+    # def get_testing_set_by_emotion(self, emotion):
+    #     pass
+
+    # def get_dataset_by_emotion(self, emotion):
+    #     return (self.get_training_set_by_emotion(emotion), self.get_dev_set_by_emotion(emotion), self.get_testing_set_by_emotion(emotion))
 
 
 class Fuser:    # ToDo: merge Dataset instances
