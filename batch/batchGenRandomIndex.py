@@ -53,27 +53,14 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
 
     idx_dict = {}
-    emotion_dirs = os.listdir(args.corpus_folder)
 
-    for emotion in emotion_dirs:
+    # we only need 40 emotions appeared in LJ40K    
+    emotion_dirs = filename.emotions['LJ40K']
+    #emotion_dirs = os.listdir(args.corpus_folder)
 
-        # we only process the 40 emotions appeared in LJ40K
-        if emotion not in filename.emotions['LJ40K']:
-            continue
-        
-        emotion_dir = os.path.join(args.corpus_folder, emotion)
+    generator = RandomIndex(args.percent_train, args.percent_dev, args.percent_test)
+    set_dict = {}
+    set_dict['train'], set_dict['dev'], set_dict['test'] = generator.shuffle(args.corpus_folder, emotion_dirs)
 
-        ndoc = len(os.listdir(emotion_dir)) - 2     # minus . and ..
-        logger.info("emotion = %s, ndoc = %u", emotion, ndoc)
-
-        set_dict = {}
-        generator = RandomIndex(args.percent_train, args.percent_dev, args.percent_test)
-        set_dict['train'], set_dict['dev'], set_dict['test'] = generator.shuffle(ndoc)
-
-        idx_dict[emotion] = set_dict
-
-        logger.info("ntrain = %u, ndev = %u, ntest = %u", len(idx_dict[emotion]['train']), len(idx_dict[emotion]['dev']), len(idx_dict[emotion]['test']))
-
-        assert ndoc == len(idx_dict[emotion]['train']) + len(idx_dict[emotion]['dev']) + len(idx_dict[emotion]['test'])
-
+    logger.info("dumping file to %s" % (args.output_filename))
     utils.save_pkl_file(idx_dict, args.output_filename)

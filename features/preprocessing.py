@@ -1,67 +1,78 @@
 
+import os
 import sys
 sys.path.append('../')
 
 import logging
+import random
+import pickle
+import json
+import numpy as np
 
 from common import filename
 from common import utils
 
 
-def get_feature_list(feature_list_file):
-    fp = open(feature_list_file, 'r')
-    feature_list = json.load(fp)
-    fp.close()
-    return feature_list
-
-
-class RandomIndex:
+class FeatureList:
     """
     """
-    def __init__(self, percent_train, percent_dev, percent_test):
+    def __init__(self, filename):
+
+        try:
+            fp = open(filename, 'r')
+            self.feature_list = json.load(fp)
+            fp.close()
+        except IOError as e:
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+        except ValueError:
+            print "Could not convert data to an integer."
+        except:
+            print "Unexpected error:", sys.exc_info()[0]
+            raise
+
+    def __iter__(self):
         """
-            rate_train, rate_dev, rate_test should in percentage
+            iterate on the feature name
         """
-        if percent_train + percent_dev + percent_test != 100:
-            raise ValueError("percent_train + percent_dev + percent_test should be 100")
+        for feature in self.feature_list:
+            yield (feature['name'], feature['data'])            
 
-        if percent_train == 0:
-            raise ValueError("percent_train should not be zero")
+    @staticmethod
+    def get_full_data_path(emotion, data):
+        fname = '.'.join([data['file_prefix'], emotion, data['file_postfix']])
+        return os.path.join(data['dir'], fname)
 
-        self.rate_train = float(percent_train)/100
-        self.rate_dev = float(percent_dev)/100
-        self.rate_test = float(percent_test)/100
+    def _get_file_name_by_emtion(self, data_dir, emotion, **kwargs):
+        '''
+            serach the data_dir and get the file name with the specified emotion and extension
+        '''
+        ext = '.pkl' if 'ext' not in kwargs else kwargs['ext']
+        files = [fname for fname in os.listdir(train_dir) if os.path.isfile(os.path.join(train_dir, fname))]
 
-    def shuffle(self, ndata):
-        """
-            return three lists (train_idx, dev_idx, test_idx)
-        """
-        import random
+        # target file is the file that contains the emotion string and has the desginated extension
+        for fname in files:
+            target = None
+            if fname.endswith(ext) and fname.find(emotion) != -1:
+                target = fname
+                break
+        return target
 
-        ntrain = long(ndata * self.rate_train)
-        ndev = long(ndata * self.rate_dev)
-        ntest = long(ndata * self.rate_test)
-
-        nremain = ndata - ntrain - ndev - ntest
-        if nremain != 0:
-            # we put the remains in the training set
-            ntrain += nremain
-
-        all_idx = range(ndata)
-        random.shuffle(all_idx)
-
-        train = all_idx[:ntrain]
-        dev = all_idx[ntrain:ntrain+ndev]
-        test = all_idx[ntrain+ndev:ntrain+ndev+ntest]
-
-        return (train, dev, test)
+    def get_paths_by_emotion(self, emotion_name):
+        paths = []
+        for feature in self.feature_list:         
+            fname = self._get_file_name_by_emtion(feature['data_dir'], emotion_name, exp='.pkl')
+            if fname is not None:
+                paths.append(os.path.join(feature['data_dir'], fname))
+            else:
+                raise ValueError("failed to find the data of %s in %s" % (emotion_name, feature['data_dir']))
+        return paths
 
 
 class Dataset:
     """
         store train/dev/test datasets
     """
-    def __init__(self, idx_dict, input_folder, **kwargs):
+    def __init__(self, idx_dict, data_path, **kwargs):
         """
             idx_dict[emotion]['train']
             idx_dict[emotion]['dev']
@@ -75,28 +86,52 @@ class Dataset:
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
         self.idx_dict = idx_dict
-        self.Xs = {}
+        self.Xs_pos = {}
+        self.Xs_neg = {}
 
-        # we only take the 40 emotions appeared in the LJ40K
         for emotion in filename.emotions['LJ40K']:
-            fpath = os.path.join(input_folder, filename.get_raw_data_file_name('', emotion))
+            fpath = FeatureList.get_full_data_path(emotion, data_path)
 
-            # ToDo: match sven's structure
             self.logger.info("load features from %s", fpath)
             try:
-                raw_emotion = pickle.load(open(fpath, "r"))
+                Xy = pickle.load(open(fpath, "r"))
             except ValueError:
                 self.logger.error("failed to load %s" % (fpath))
 
-            X = {}
-            X['train'] = raw_emotion[self.idx_dict[emotion]['train']]
-            X['dev'] = raw_emotion[self.idx_dict[emotion]['dev']]
-            X['test'] = raw_emotion[self.idx_dict[emotion]['test']]
-            self.Xs[emotion] = X
+            X = np.zeros((len(Xy),300),dtype="float32")
+            # ToDo: concatenating numpy array wastes too many times, so we need do it when generating pkl
+            for i in range(len(Xy)):    
+                # make sure only one feature vector in each doc
+                assert Xy[i]['X'].shape[0] == 1                
+                X[i] = Xy[i]['X']
+                self.logger.info("X.shapae = %s", X.shape)
+
+            X_dict['train'] = X[self.idx_dict[emotion]['train']]
+            X_dict['dev'] = X[self.idx_dict[emotion]['dev']]
+            X_dict['test'] = X[self.idx_dict[emotion]['test']]
+            self.Xs_pos[emotion] = X_dict
+
+            import pdb; pdb.set_trace()
+
+    def _get_negative_examples(self, emotion_pos, set_type):
+        """
+            algorithm (for all train/dev/test):
+                1. we aim to find the same number of negative examples as positives
+                2. n_pos / 39 = number of negative exampel retrieved from each of other 39 emotions
+                3. stack 39 groups together
+        """
+        pass
 
     def _get_set_by_emotions(self, emotion, set_type):
         assert len(self.Xs) != 0 and len (self.Xs[emotion]) != 0
-        return self.Xs[emotion][set_type]
+
+        negs = self._get_negative_examples(emotion, set_type)
+
+        #negs
+        #+
+        #self.Xs_pos[emotion][set_type]
+
+        #return self.Xs_pos[emotion][set_type]
 
     def get_training_set_by_emotion(self, emotion):
         return self._get_set_by_emotions(emotion, 'train')
@@ -128,14 +163,19 @@ class Dataset:
 
 class FusedDataset:
     """
+        fuse different features
     """
-    def __init__(self):
-        self.feature_names = []
-        self.feature_dims = []
-        self.Xs = {}
+    def __init__(self, **kwargs):
+        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+
+        self.feature_name = []
+        self.datasets = []
 
     def add_feature(self, feature_name, dataset):
-        pass
+        self.feature_name.append(feature_name)
+        self.datasets.append(dataset)
 
     def get_training_set_by_emotion(self, emotion):
         pass
@@ -240,3 +280,100 @@ class Fuser:    # ToDo: merge Dataset instances
 
 
 
+
+class RandomIndex:
+    """
+    """
+    def __init__(self, percent_train, percent_dev, percent_test, **kwargs):
+        """
+            rate_train, rate_dev, rate_test should in percentage
+        """
+
+        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+
+        if percent_train + percent_dev + percent_test != 100:
+            raise ValueError("percent_train + percent_dev + percent_test should be 100")
+
+        if percent_train == 0:
+            raise ValueError("percent_train should not be zero")
+
+        self.rate_train = float(percent_train)/100
+        self.rate_dev = float(percent_dev)/100
+        self.rate_test = float(percent_test)/100
+
+    def _shuffle_index_of_sets(self, ndoc):
+
+        ntrain = long(ndoc * self.rate_train)
+        ndev = long(ndoc * self.rate_dev)
+        ntest = long(ndoc * self.rate_test)
+
+        nremain = ndoc - ntrain - ndev - ntest
+        if nremain != 0:
+            # we put the remains in the training set
+            ntrain += nremain
+
+        all_idx = range(ndoc)
+        random.shuffle(all_idx)
+
+        train = all_idx[:ntrain]
+        dev = all_idx[ntrain:ntrain+ndev]
+        test = all_idx[ntrain+ndev:ntrain+ndev+ntest]
+
+        return (train, dev, test)
+
+    def _get_random_subset(self, entire_set, nsubset):
+        dup = entire_set
+        random.shuffle(dup)
+        return dup[:nsubset]
+
+    def shuffle(self, root, emotion_dirs):
+        """
+            return three lists (train_idx, dev_idx, test_idx)
+        """
+
+        # 2D dictionary to store the sets for each emotion
+        train = {}
+        dev = {}
+        test = {}
+
+        # generate positive indices
+        for emotion in emotion_dirs:
+
+            emotion_dir = os.path.join(root, emotion)
+            ndoc = len(os.listdir(emotion_dir)) - 2     # minus . and ..
+            self.logger.info("emotion = %s, ndoc = %u", emotion, ndoc)
+            
+            train[emotion] = {}
+            dev[emotion] = {}
+            test[emotion] = {}
+            train[emotion][emotion], dev[emotion][emotion], test[emotion][emotion] = self._shuffle_index_of_sets(ndoc)
+
+        """
+            shuffle negatives
+            algorithm (for all train/dev/test):
+                1. we aim to find the same number of negative examples as positives
+                2. n_pos / 39 = number of negative examples retrieved from each of other 39 emotions
+                3. stack 39 groups together as the negatives
+        """
+        for emotion in emotion_dirs:
+            
+            # the difference between pos. and neg. will be less than 39
+            n_neg_train = len(train[emotion][emotion]) / 39    
+            n_neg_dev = len(dev[emotion][emotion]) / 39 
+            n_neg_test = len(test[emotion][emotion]) / 39 
+
+            for neg_emotion in emotion_dirs:
+
+                if neg_emotion == emotion:
+                    continue
+
+                train[emotion][neg_emotion] = self._get_random_subset(train[neg_emotion][neg_emotion], n_neg_train)
+                dev[emotion][neg_emotion] = self._get_random_subset(dev[neg_emotion][neg_emotion], n_neg_dev)
+                test[emotion][neg_emotion] = self._get_random_subset(test[neg_emotion][neg_emotion], n_neg_test)
+
+                self.logger.debug("len(train[%s][%s]) = %u" % (emotion, emotion, len(train[emotion][emotion])))
+                self.logger.debug("len(train[%s][%s]) = %u" % (emotion, neg_emotion, len(train[emotion][neg_emotion])))
+
+        return train, dev, test
