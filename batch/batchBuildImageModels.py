@@ -91,7 +91,7 @@ if __name__ == '__main__':
             scaler = StandardScaler(with_mean=True, with_std=True)
             logger.debug("applying standard scaling")
             X_train = scaler.fit_transform(X_train)
-            X_dev = scaler.fit(X_dev)
+            X_dev = scaler.transform(X_dev)
             
             fpath = os.path.join(args.output_folder, 'scaler_%s.pkl' % (emotion_name))
             logger.info('dumpping scaler to %s' % (fpath))
@@ -122,6 +122,14 @@ if __name__ == '__main__':
                     best_res[emotion_name]['c'] = c
                     best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
                     best_res[emotion_name]['auc'] = result['auc']
+
+        logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
+        logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))
+        logger.info("[%s] best c = %f" % (emotion_name, best_res[emotion_name]['c']))
+        logger.info("[%s] best prob = %f" % (emotion_name, best_res[emotion_name]['X_predict_prob']))
+        logger.info("[%s] best auc = %f" % (emotion_name, best_res[emotion_name]['auc']))
+
+
 
     fpath = os.path.join(args.output_folder, 'best_results.pkl')
     logger.info('dumpping best results to %s' % (fpath))
