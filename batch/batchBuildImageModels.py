@@ -7,10 +7,14 @@ import numpy as np
 import argparse
 import pickle
 import logging
+import time
+
+from sklearn.preprocessing import StandardScaler
 
 from common import utils
 from common import filename
 from features import preprocessing
+from model import learner
 
 def get_arguments(argv):
 
@@ -66,21 +70,60 @@ if __name__ == '__main__':
 
     # create fused dataset
     fused_dataset = preprocessing.FusedDataset(idxs, loglevel=loglevel)
-    import pdb; pdb.set_trace()
+
     for feature_name, data_path in feature_list:
         dataset = preprocessing.Dataset(data_path, loglevel=loglevel)
         fused_dataset.add_feature(feature_name, dataset)
 
 
     # main loop
+    best_res = {}
+
     for emotion_id in args.emotion_ids:
 
         emotion_name = filename.emotions['LJ40K'][emotion_id]
         logger.info('training model for emotion "%s"' % emotion_name)
 
         X_train, y_train = fused_dataset.get_dataset(emotion_name, 'train')
+        X_dev, y_dev = fused_dataset.get_dataset(emotion_name, 'dev')
 
+        if not args.no_scaling:
+            scaler = StandardScaler(with_mean=True, with_std=True)
+            logger.debug("applying standard scaling")
+            X_train = scaler.fit_transform(X_train)
+            X_dev = scaler.fit(X_dev)
+            
+            fpath = os.path.join(args.output_folder, 'scaler_%s.pkl' % (emotion_name))
+            logger.info('dumpping scaler to %s' % (fpath))
+            utils.save_pkl_file(scaler, fpath)
 
+        best_res[emotion_name] = {}
+        best_res[emotion_name]['score'] = 0
+        for c in args.c:
+            for g in args.gamma:
 
+                # we do not do scaling in learner
+                l = learner.SVM(X=X_train, y=y_train, feature_name=fused_dataset.get_feature_name(), scaling=False, loglevel=loglevel)
 
-    
+                logger.info('[%s] start training: c=%f, gamma=%f' % (emotion_name, c, g))
+                start_time = time.time()
+                l.train(C=c, kernel='rbf', gamma=g, prob=True, random_state=np.random.RandomState(0))
+                end_time = time.time()
+                logger.info('[%s] training time = %f s' % (emotion_name, end_time-start_time))
+
+                fpath = os.path.join(args.output_folder, 'model_%s_c%f_g%f.pkl' % (emotion_name, c, g))
+                logger.info('[%s] dumpping model to %s' % (emotion_name, fpath))
+                l.dump_model(fpath)
+
+                result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True)
+                if result['score'] > best_res[emotion_name]['score']:
+                    best_res[emotion_name]['score'] = result['score']
+                    best_res[emotion_name]['gamma'] = g
+                    best_res[emotion_name]['c'] = c
+                    best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
+                    best_res[emotion_name]['auc'] = result['auc']
+
+    fpath = os.path.join(args.output_folder, 'best_results.pkl')
+    logger.info('dumpping best results to %s' % (fpath))
+    utils.save_pkl_file(best_res, fpath)           
+    # ToDo: make csv file
