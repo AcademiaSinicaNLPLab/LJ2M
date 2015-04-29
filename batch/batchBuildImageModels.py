@@ -29,12 +29,15 @@ def get_arguments(argv):
     
     parser.add_argument('-e', '--emotion_ids', metavar='EMOTION_IDS', type=utils.parse_range, default=[0], 
                         help='a list that contains emotion ids ranged from 0-39 (DEFAULT: 0). This can be a range expression, e.g., 3-6,7,8,10-15')
+    parser.add_argument('-p', '--parameter_file', metavar='PARAMETER_FILE', default=None, 
+                        help='a file include parameter C and gamma')
     parser.add_argument('-c', metavar='C', type=utils.parse_list, default=[1.0], 
                         help='SVM parameter (DEFAULT: 1). This can be a list expression, e.g., 0.1,1,10,100')
-    parser.add_argument('-g', '--gamma', metavar='GAMMA', type=utils.parse_list, default=None, 
+    parser.add_argument('-g', '--gamma', metavar='GAMMA', type=utils.parse_list, default=[0.0003]], 
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
                         help='do not perform feature scaling (DEFAULT: False)')
+
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
     parser.add_argument('-d', '--debug', action='store_true', default=False, 
@@ -75,6 +78,10 @@ if __name__ == '__main__':
         dataset = preprocessing.Dataset(data_path, loglevel=loglevel)
         fused_dataset.add_feature(feature_name, dataset)
 
+    # read parameter file
+    if args.parameter_file != None:
+        param_dict = utils.read_param_file(args.parameter_file)
+
 
     # main loop
     best_res = {}
@@ -99,6 +106,14 @@ if __name__ == '__main__':
 
         best_res[emotion_name] = {}
         best_res[emotion_name]['score'] = 0
+
+        if args.parameter_file != None:
+            Cs = [param_dict[emotion_name][0]]
+            gammas = [param_dict[emotion_name][1]]
+        else:
+            Cs = args.c
+            gamma = args.gamma
+
         for c in args.c:
             for g in args.gamma:
 
@@ -122,6 +137,7 @@ if __name__ == '__main__':
                     best_res[emotion_name]['c'] = c
                     best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
                     best_res[emotion_name]['auc'] = result['auc']
+
 
         logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
         logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))

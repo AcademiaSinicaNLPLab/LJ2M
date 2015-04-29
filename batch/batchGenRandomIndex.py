@@ -30,6 +30,8 @@ def get_arguments(argv):
     parser.add_argument('output_filename', metavar='output_filename', 
                         help='output file name')
 
+    parser.add_argument('-z', '--zero_vector_file', metavar='IGNORE_ZV', default=None, 
+                        help='ignore the indexes by using zero-vector file; a pickle file made by Sven including indexs of zero vectors')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
     parser.add_argument('-d', '--debug', action='store_true', default=False, 
@@ -56,9 +58,10 @@ if __name__ == '__main__':
     emotion_dirs = filename.emotions['LJ40K']
     #emotion_dirs = os.listdir(args.corpus_folder)
 
-    generator = RandomIndex(args.percent_train, args.percent_dev, args.percent_test)
+    generator = RandomIndex(args.percent_train, args.percent_dev, args.percent_test, 
+                            emotions=emotion_dirs, zero_vector_idxs_filename=args.zero_vector_file)
     idx_dict = {}
-    idx_dict['train'], idx_dict['dev'], idx_dict['test'] = generator.shuffle(args.corpus_folder, emotion_dirs)
+    idx_dict['train'], idx_dict['dev'], idx_dict['test'] = generator.shuffle(args.corpus_folder)
 
     logger.info("dumping file to %s" % (args.output_filename))
     utils.save_pkl_file(idx_dict, args.output_filename)

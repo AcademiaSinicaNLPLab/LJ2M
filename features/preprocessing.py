@@ -185,11 +185,19 @@ class RandomIndex:
     def __init__(self, percent_train, percent_dev, percent_test, **kwargs):
         """
             rate_train, rate_dev, rate_test should in percentage
+
+            options:
+                loglevel
+                zero_vector_idxs_filename
+                emotions
         """
 
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
         logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+
+        self.zero_vector_idxs_filename = None if 'zero_vector_idxs_filename' not in kwargs else kwargs['zero_vector_idxs_filename']
+        self.emotions = filename.emotions['LJ40K'] if 'emotions' not in kwargs else kwargs['emotions']
 
         if percent_train + percent_dev + percent_test != 100:
             raise ValueError("percent_train + percent_dev + percent_test should be 100")
@@ -226,7 +234,14 @@ class RandomIndex:
         random.shuffle(dup)
         return dup[:nsubset]
 
-    def shuffle(self, root, emotion_dirs):
+    def _remove_zero_vector_index(self, train, dev, test, zv_idxs):
+
+        for emotion in self.emotions:
+            train[emotion][emotion] = filter(lambda x: x not in zv_idxs[emotion], train[emotion][emotion])
+            dev[emotion][emotion] = filter(lambda x: x not in zv_idxs[emotion], dev[emotion][emotion])
+            test[emotion][emotion] = filter(lambda x: x not in zv_idxs[emotion], test[emotion][emotion])
+
+    def shuffle(self, root):
         """
             return three lists (train_idx, dev_idx, test_idx)
         """
@@ -237,7 +252,7 @@ class RandomIndex:
         test = {}
 
         # generate positive indices
-        for emotion in emotion_dirs:
+        for emotion in self.emotions:
 
             emotion_dir = os.path.join(root, emotion)
             ndoc = len(os.listdir(emotion_dir)) - 2     # minus . and ..
@@ -248,6 +263,14 @@ class RandomIndex:
             test[emotion] = {}
             train[emotion][emotion], dev[emotion][emotion], test[emotion][emotion] = self._shuffle_index_of_sets(ndoc)
 
+            self.logger.debug("len(train[%s][%s]) = %u" % (emotion, emotion, len(train[emotion][emotion])))
+            self.logger.debug("len(dev[%s][%s]) = %u" % (emotion, emotion, len(dev[emotion][emotion]))) 
+            self.logger.debug("len(test[%s][%s]) = %u" % (emotion, emotion, len(test[emotion][emotion]))) 
+
+        # remove the zero vectors collected by Sven for LJ2M
+        if self.zero_vector_idxs_filename != None:
+            self._remove_zero_vector_index(train, dev, test, pickle.load(open(self.zero_vector_idxs_filename)))
+
         """
             shuffle negatives
             algorithm (for all train/dev/test):
@@ -255,14 +278,14 @@ class RandomIndex:
                 2. n_pos / 39 = number of negative examples retrieved from each of other 39 emotions
                 3. stack 39 groups together as the negatives
         """
-        for emotion in emotion_dirs:
+        for emotion in self.emotions:
             
             # the difference between pos. and neg. will be less than 39
             n_neg_train = len(train[emotion][emotion]) / 39    
             n_neg_dev = len(dev[emotion][emotion]) / 39 
             n_neg_test = len(test[emotion][emotion]) / 39 
 
-            for neg_emotion in filter(lambda x: x != emotion, emotion_dirs):
+            for neg_emotion in filter(lambda x: x != emotion, self.emotions):
 
                 train[emotion][neg_emotion] = self._get_random_subset(train[neg_emotion][neg_emotion], n_neg_train)
                 dev[emotion][neg_emotion] = self._get_random_subset(dev[neg_emotion][neg_emotion], n_neg_dev)

@@ -40,4 +40,19 @@ def test_writable(file_path):
         
     filehandle.close()
     return writable
-    
+
+def read_parameter_file(file_path):
+    """
+        this is a temporary solution
+        ToDo: generalize
+    """
+    param_dict = {}
+    with open(file_path) as f:
+        for line in f:
+
+            toks = line.strip().split(',')
+            # only work in python 2.x
+            toks[1] = float(toks[1].translate(None, '"()'))
+            toks[2] = float(toks[2].translate(None, '"()'))
+
+            param_dict[toks[0]] = toks[1], toks[2]
