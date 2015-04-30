@@ -56,3 +56,6 @@ def read_parameter_file(file_path):
             toks[2] = float(toks[2].translate(None, '"()'))
 
             param_dict[toks[0]] = toks[1], toks[2]
+
+    return param_dict
+    

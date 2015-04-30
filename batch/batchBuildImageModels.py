@@ -33,7 +33,7 @@ def get_arguments(argv):
                         help='a file include parameter C and gamma')
     parser.add_argument('-c', metavar='C', type=utils.parse_list, default=[1.0], 
                         help='SVM parameter (DEFAULT: 1). This can be a list expression, e.g., 0.1,1,10,100')
-    parser.add_argument('-g', '--gamma', metavar='GAMMA', type=utils.parse_list, default=[0.0003]], 
+    parser.add_argument('-g', '--gamma', metavar='GAMMA', type=utils.parse_list, default=[0.0003], 
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
                         help='do not perform feature scaling (DEFAULT: False)')
@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     # read parameter file
     if args.parameter_file != None:
-        param_dict = utils.read_param_file(args.parameter_file)
+        param_dict = utils.read_parameter_file(args.parameter_file)
 
 
     # main loop
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
         logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))
         logger.info("[%s] best c = %f" % (emotion_name, best_res[emotion_name]['c']))
-        logger.info("[%s] best prob = %f" % (emotion_name, best_res[emotion_name]['X_predict_prob']))
+        logger.info("[%s] best prob = %s" % (emotion_name, str(best_res[emotion_name]['X_predict_prob'])))
         logger.info("[%s] best auc = %f" % (emotion_name, best_res[emotion_name]['auc']))
 
 

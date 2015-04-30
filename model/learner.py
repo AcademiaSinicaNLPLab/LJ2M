@@ -8,29 +8,10 @@ from sklearn import svm
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_curve, auc
 
-# not work in PYTHON 2.7?
-# class Classifier:
-#     def __init__(self):
-#         raise NotImplementedError("This is an abstract class.")
-
-#     @abstractmethod
-#     def set(self, X, y, feature_name):
-#         """
-#             set the training X, y, and feature name string
-#         """
-#         pass
-
-#     @abstractmethod
-#     def train(self, **kwargs):
-#         pass
-
-#     @abstractmethod
-#     def predict(self, X_test, y_test, **kwargs):
-#         pass
+from .base import LearnerBase
 
 
-#class SVM(Classifier):
-class SVM:
+class SVM(LearnerBase):
     """
     usage:
         >> from models import learners
