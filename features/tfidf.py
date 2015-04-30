@@ -41,7 +41,7 @@ class TFIDF(FeatureBase):
                 self._tf2(1)
             
             if 'tf3' in self.tf_type:
-                self._tf3(1, 1)
+                self._tf3(1, 0.5)
 
             return self.Docs_info
 
@@ -53,7 +53,7 @@ class TFIDF(FeatureBase):
                     for word in self.Docs_info[emotion][doc]['fd_t']:
                         fd_t = self.Docs_info[emotion][doc]['fd_t'][word]
 
-                        tf1 = 1 + np.log2(fd_t)
+                        tf1 = 1 + np.log2(float(fd_t))
 
                         self.Docs_info[emotion][doc]['tf1'][word] = tf1
 
@@ -127,11 +127,11 @@ class TFIDF(FeatureBase):
             for word in self.Words_info:
                 nt = self.Words_info[word]['nt']
 
-                idf3 = 1 - nt/np.log(self.D)
+                idf3 = 1 - nt/np.log(float(self.D))
 
                 self.Words_info[word]['idf3'] = idf3
 
-    def __init__(self, dataset = 'LJ2M', savepath, *tfidf_types):
+    def __init__(self, savepath, dataset = 'LJ2M', *tfidf_types):
         self.tf_type = set()
         self.idf_type = set()
         for t in tfidf_types:
@@ -168,6 +168,7 @@ class TFIDF(FeatureBase):
         avg_ld = 0             ## average document length in D
         #--------------------------------------------------------------------------
 
+        print 'start to preprocessing'
         # self.emotions = self.emotions[33:34]
         for i,emotion in enumerate(self.emotions):
             Docs_info[emotion] = {}
@@ -197,18 +198,21 @@ class TFIDF(FeatureBase):
                         Words_info[word]['total_count'] = dict(fd_t)[word]
                         Words_info[word]['ft_D'] = 1
                 D = D + 1
+            print emotion+ ' complete!'
 
         avg_ld = ld_count / D
         T = len(Words_info)
 
         Words_info = self.entropy(Docs_info, Words_info)
 
+        print 'start to calculate tf'
         Docs_info = self.tf_obj.calculate(Docs_info=Docs_info, avg_ld=avg_ld)
+        print 'start to calculate idf'
         Words_info = self.idf_obj.calculate(Words_info=Words_info, D=D)
-
+        print 'start to calculate tfidf'
         Docs_info = self.tf_x_idf(Docs_info, Words_info)
-
-        self.dump(Docs_info,self.savepath+'/Docs_info.pkl')
+        print 'start to dump tfidf'
+        self.dump(Docs_info,self.savepath+'/Docs_info_b0.5.pkl')
         self.dump(Words_info,self.savepath+'/Words_info.pkl')
 
     def entropy(self, Docs_info, Words_info):
