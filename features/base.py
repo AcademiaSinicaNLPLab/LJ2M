@@ -15,3 +15,10 @@ class FeatureBase:
     def calculate(self, filename):
         pass
 
+    @abc.abstractmethod
+    def dump(self,filename):
+        pass
+
+    @abc.abstractmethod
+    def load(self,filename):
+        pass
