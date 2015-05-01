@@ -5,18 +5,19 @@ from .base import FeatureBase
 
 
 
-'''
+'''USAGE
+
 # -*- coding: utf8 -*-
 import sys, os
 sys.path.append("../")
+
 from features.tfidf import TFIDF
-## [dataset, savepath, tfidf_types]
-tfidf_obj = TFIDF('LJ2M','/corpus/LJ2M/data/features/tfidf',tf2','idf1','tf3','tf1,'idf2','idf3')
+
+tfidf_obj = TFIDF('LJ2M','tf2','idf2','tf3','idf1')
 tfidf_obj.calculate('/corpus/LJ2M/data/pkl/lj2m_wordlists')
+tfidf_obj.dump('/corpus/LJ2M/data/features/tfidf')
+
 '''
-
-
-
 
 class TFIDF(FeatureBase):
 
