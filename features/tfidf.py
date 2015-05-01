@@ -9,14 +9,10 @@ from .base import FeatureBase
 # -*- coding: utf8 -*-
 import sys, os
 sys.path.append("../")
-
 from features.tfidf import TFIDF
-
 ## [dataset, savepath, tfidf_types]
-
 tfidf_obj = TFIDF('LJ2M','/corpus/LJ2M/data/features/tfidf',tf2','idf1','tf3','tf1,'idf2','idf3')
 tfidf_obj.calculate('/corpus/LJ2M/data/pkl/lj2m_wordlists')
-
 '''
 
 
@@ -32,54 +28,51 @@ class TFIDF(FeatureBase):
             if 'Docs_info' in kwargs:
                 self.Docs_info = kwargs['Docs_info']
             if 'avg_ld' in kwargs:
-                self.avg_ld = kwargs['avg_ld']
-            
-            if 'tf1' in self.tf_type:
-                self._tf1()
+                avg_ld = kwargs['avg_ld']
 
-            if 'tf2' in self.tf_type:
-                self._tf2(1)
-            
-            if 'tf3' in self.tf_type:
-                self._tf3(1, 0.5)
+            for emotion in self.Docs_info:
+                for doc in self.Docs_info[emotion]:
+                    ld = self.Docs_info[emotion][doc]['ld']
+
+                    if 'tf1' in self.tf_type:
+                        self.Docs_info[emotion][doc]['tf1'] = {}
+                    if 'tf2' in self.tf_type:
+                        self.Docs_info[emotion][doc]['tf2'] = {}
+                    if 'tf3' in self.tf_type:
+                        self.Docs_info[emotion][doc]['tf3'] = {}
+
+                    for word in self.Docs_info[emotion][doc]['fd_t']:
+                        fd_t = self.Docs_info[emotion][doc]['fd_t'][word]
+
+                        if 'tf1' in self.tf_type:
+                            self._tf1(emotion, doc, word, fd_t)
+
+                        if 'tf2' in self.tf_type:
+                            self._tf2(emotion, doc, word, fd_t, ld, avg_ld, k=1.)
+                        
+                        if 'tf3' in self.tf_type:
+                            self._tf3(emotion, doc, word, fd_t, ld, avg_ld, k=1., b=1.)
 
             return self.Docs_info
 
-        def _tf1(self):
+        def _tf1(self, emotion, doc, word, fd_t):
             import numpy as np
-            for emotion in self.Docs_info:
-                for doc in self.Docs_info[emotion]:
-                    self.Docs_info[emotion][doc]['tf1'] = {}
-                    for word in self.Docs_info[emotion][doc]['fd_t']:
-                        fd_t = self.Docs_info[emotion][doc]['fd_t'][word]
+            #------------------------------------------------------------------#
+            tf1 = 1 + np.log2(float(fd_t))
+            #------------------------------------------------------------------#
+            self.Docs_info[emotion][doc]['tf1'][word] = tf1
 
-                        tf1 = 1 + np.log2(float(fd_t))
+        def _tf2(self, emotion, doc, word, fd_t, ld, avg_ld, k=1.):
+            #------------------------------------------------------------------#
+            tf2 = fd_t / (fd_t + k*(float(ld) / avg_ld))
+            #------------------------------------------------------------------#
+            self.Docs_info[emotion][doc]['tf2'][word] = tf2
 
-                        self.Docs_info[emotion][doc]['tf1'][word] = tf1
-
-        def _tf2(self, k):
-            for emotion in self.Docs_info:
-                for doc in self.Docs_info[emotion]:
-                    ld = self.Docs_info[emotion][doc]['ld']
-                    self.Docs_info[emotion][doc]['tf2'] = {}
-                    for word in self.Docs_info[emotion][doc]['fd_t']:
-                        fd_t = self.Docs_info[emotion][doc]['fd_t'][word]
-
-                        tf2 = fd_t / (fd_t + k*(float(ld) / self.avg_ld))
-
-                        self.Docs_info[emotion][doc]['tf2'][word] = tf2
-
-        def _tf3(self, k, b):
-            for emotion in self.Docs_info:
-                for doc in self.Docs_info[emotion]:
-                    ld = self.Docs_info[emotion][doc]['ld']
-                    self.Docs_info[emotion][doc]['tf3'] = {}
-                    for word in self.Docs_info[emotion][doc]['fd_t']:
-                        fd_t = self.Docs_info[emotion][doc]['fd_t'][word]
-
-                        tf3 = (k+1)*fd_t / (fd_t + k*((1-b) + b*(float(ld)/self.avg_ld)))
-
-                        self.Docs_info[emotion][doc]['tf3'][word] = tf3
+        def _tf3(self, emotion, doc, word, fd_t, ld, avg_ld, k=1., b=1.):
+            #------------------------------------------------------------------#
+            tf3 = (k+1)*fd_t / (fd_t + k*((1-b) + b*(float(ld)/avg_ld)))
+            #------------------------------------------------------------------#
+            self.Docs_info[emotion][doc]['tf3'][word] = tf3
 
     class IDF:
         def __init__(self, idf_type):
@@ -89,49 +82,47 @@ class TFIDF(FeatureBase):
             if 'Words_info' in kwargs:
                 self.Words_info = kwargs['Words_info']
             if 'D' in kwargs:
-                self.D = kwargs['D']
+                D = kwargs['D']
             
-            if 'idf1' in self.idf_type:
-                self._idf1()
+            for word in self.Words_info:
+                ft_D = self.Words_info[word]['ft_D']
+                nt = self.Words_info[word]['nt']
 
-            if 'idf2' in self.idf_type:
-                self._idf2()
-            
-            if 'idf3' in self.idf_type:
-                self._idf3()
+                if 'idf1' in self.idf_type:
+                    self._idf1(word, ft_D, D)
+
+                if 'idf2' in self.idf_type:
+                    self._idf2(word, nt)
+                
+                if 'idf3' in self.idf_type:
+                    self._idf3(word, nt, D)
 
             return self.Words_info
 
-        def _idf1(self):
+        def _idf1(self, word, ft_D, D):
             import numpy as np
-            for word in self.Words_info:
-                ft_D = float(self.Words_info[word]['ft_D'])
+            #------------------------------------------------------------------#
+            idf1 = np.log(float(D)/ft_D)
+            #------------------------------------------------------------------#
+            self.Words_info[word]['idf1'] = idf1
 
-                idf1 = np.log(self.D/ft_D)
+        def _idf2(self, word, nt):
+            Words_info = dict(self.Words_info)
+            del Words_info[word]
+            max_nt = max([Words_info[w]['nt'] for w in Words_info])
+            #------------------------------------------------------------------#
+            idf2 = max_nt - nt
+            #------------------------------------------------------------------#
+            self.Words_info[word]['idf2'] = idf2
 
-                self.Words_info[word]['idf1'] = idf1
-
-        def _idf2(self):
-            for word in self.Words_info:
-                Words_info = dict(self.Words_info)
-                del Words_info[word]
-                max_nt = max([Words_info[w]['nt'] for w in Words_info])
-                nt = self.Words_info[word]['nt']
-
-                idf2 = max_nt - nt
-
-                self.Words_info[word]['idf2'] = idf2
-
-        def _idf3(self):
+        def _idf3(self, word, nt, D):
             import numpy as np
-            for word in self.Words_info:
-                nt = self.Words_info[word]['nt']
+            #------------------------------------------------------------------#
+            idf3 = 1 - nt/np.log(float(D))
+            #------------------------------------------------------------------#
+            self.Words_info[word]['idf3'] = idf3
 
-                idf3 = 1 - nt/np.log(float(self.D))
-
-                self.Words_info[word]['idf3'] = idf3
-
-    def __init__(self, savepath, dataset = 'LJ2M', *tfidf_types):
+    def __init__(self, dataset = 'LJ2M', *tfidf_types):
         self.tf_type = set()
         self.idf_type = set()
         for t in tfidf_types:
@@ -139,12 +130,17 @@ class TFIDF(FeatureBase):
                 self.tf_type.add(t)
             elif t.startswith('idf'):
                 self.idf_type.add(t)
-
         self.tf_obj = self.TF(self.tf_type)
         self.idf_obj = self.IDF(self.idf_type)
-        self.emotions = filename.emotions[dataset]
-        self.savepath = savepath
 
+        self.Dataset_info = {}      ## dataset information contain: 
+                                    ## avg_ld, total_words_count, D, T
+        self.Docs_info = {}         ## documents information contain: 
+                                    ## ld, fd_t, tf
+        self.Words_info = {}        ## words information contain:
+                                    ## word_total_count, ft_D, nt, idf
+
+        self.emotions = filename.emotions[dataset]
 
     def fetch(self, server, collection):
         pass
@@ -153,102 +149,117 @@ class TFIDF(FeatureBase):
         pass
 
     def calculate(self, filename):
-
-        Docs_info = {}         ## documents information contain ld, fd_t, tf
-                               ##   of documents in each document, emotion
-        Words_info = {}        ## words information contain total_count, ft_D, nt, idf
-                               ##   of each word in the whole corpus
         #--------------------------------------------------------------------------       
         T = 0                  ## the universe of terms
         D = 0                  ## the universe of documents
         ft_D = 0               ## the number of documents in D that contain t
         fd_t = 0               ## the number of occurrences of term t in document d
         ld = 0                 ## length of d
-        ld_count = 0           ## use for counting avg_ld
+        total_words_count = 0  ## use for counting avg_ld
         avg_ld = 0             ## average document length in D
         #--------------------------------------------------------------------------
 
         print 'start to preprocessing'
-        # self.emotions = self.emotions[33:34]
+        self.emotions = self.emotions[33:35]
         for i,emotion in enumerate(self.emotions):
-            Docs_info[emotion] = {}
+            self.Docs_info[emotion] = {}
             filepath = os.path.join(filename, emotion+'_wordlists.pkl')
             docs = utils.load_pkl_file(filepath)
 
-            # docs = docs[0:2]
+            docs = docs[0:5]
             for d, doc in enumerate(docs):
                 wordlist = sum(doc, [])
-                Docs_info[emotion][d] = {}
+                self.Docs_info[emotion][d] = {}
 
                 ld = len(wordlist)
-                Docs_info[emotion][d]['ld'] = ld
-                ld_count = ld_count + ld
+                self.Docs_info[emotion][d]['ld'] = ld
+                total_words_count = total_words_count + ld
 
                 from collections import Counter
                 fd_t = Counter(wordlist)
                 ## e.g. dict(fd_t) = {'happy' : 3, 'to' : 10, 'code' : 5}
-                Docs_info[emotion][d]['fd_t'] = dict(fd_t)
+                self.Docs_info[emotion][d]['fd_t'] = dict(fd_t)
 
                 for word in dict(fd_t).keys():
-                    if word in Words_info:
-                        Words_info[word]['total_count'] = Words_info[word]['total_count'] + dict(fd_t)[word]
-                        Words_info[word]['ft_D'] = Words_info[word]['ft_D'] + 1
+                    if word in self.Words_info:
+                        self.Words_info[word]['word_total_count'] = self.Words_info[word]['word_total_count'] + dict(fd_t)[word]
+                        self.Words_info[word]['ft_D'] = self.Words_info[word]['ft_D'] + 1
                     else:
-                        Words_info[word] = {}
-                        Words_info[word]['total_count'] = dict(fd_t)[word]
-                        Words_info[word]['ft_D'] = 1
+                        self.Words_info[word] = {}
+                        self.Words_info[word]['word_total_count'] = dict(fd_t)[word]
+                        self.Words_info[word]['ft_D'] = 1
                 D = D + 1
-            print emotion+ ' complete!'
+            print emotion+'(%d/%d) preprocessing complete!' % (i,len(self.emotions))
 
-        avg_ld = ld_count / D
-        T = len(Words_info)
+        avg_ld = total_words_count / D
+        T = len(self.Words_info)
 
-        Words_info = self.entropy(Docs_info, Words_info)
+        self.Dataset_info['total_words_count'] = total_words_count
+        self.Dataset_info['avg_ld'] = avg_ld
+        self.Dataset_info['D'] = D
+        self.Dataset_info['T'] = T
 
-        print 'start to calculate tf'
-        Docs_info = self.tf_obj.calculate(Docs_info=Docs_info, avg_ld=avg_ld)
-        print 'start to calculate idf'
-        Words_info = self.idf_obj.calculate(Words_info=Words_info, D=D)
-        print 'start to calculate tfidf'
-        Docs_info = self.tf_x_idf(Docs_info, Words_info)
-        print 'start to dump tfidf'
-        self.dump(Docs_info,self.savepath+'/Docs_info_b0.5.pkl')
-        self.dump(Words_info,self.savepath+'/Words_info.pkl')
+        ## already get T, D, ft_D, fd_t, ld, total_words_count, avg_ld, word_total_count
+        ## in three dict: self.Dataset_info, self.Docs_info, self.Words_info
+        ##------------------------------------------------------------------------------##
+        ## start to use this parameters to yield nt                  in self.Words_info 
+        ##                                       tf, idf, tfidf      in self.Docs_info
 
-    def entropy(self, Docs_info, Words_info):
+        if len(self.tf_type)>0:
+            print 'start to calculate tf'
+            ## make tf1, tf2, tf3 (based on your requirement) in self.Docs_info
+            self.Docs_info = self.tf_obj.calculate(Docs_info=self.Docs_info, avg_ld=avg_ld)
+
+        ## make nt in self.Words_info
+        self.entropy()
+
+        if len(self.idf_type)>0:
+            print 'start to calculate idf'
+            ## make idf1, idf2, idf3 (based on your requirement) in self.Words_info
+            self.Words_info = self.idf_obj.calculate(Words_info=self.Words_info, D=D)
+
+        if len(self.tf_type)>0 and len(self.idf_type)>0:
+            print 'start to calculate tfidf'
+            ## make tfxidf in self.Docs_info (based on what tf, idf pairs in self.Docs_info)
+            self.tf_x_idf()
+
+        # print self.Docs_info
+        # print '---------------------------------------------------------'
+        # print self.Words_info
+
+    def entropy(self):
         import numpy as np
-        for word in Words_info:
+        for word in self.Words_info:
             nt = 0.
-            for emotion in Docs_info:
-                for doc in Docs_info[emotion]:
-                    if word in Docs_info[emotion][doc]['fd_t']:
-                        fd_t = Docs_info[emotion][doc]['fd_t'][word]
-                        ft_D = float(Words_info[word]['ft_D'])
-
+            for emotion in self.Docs_info:
+                for doc in self.Docs_info[emotion]:
+                    if word in self.Docs_info[emotion][doc]['fd_t']:
+                        fd_t = self.Docs_info[emotion][doc]['fd_t'][word]
+                        ft_D = float(self.Words_info[word]['ft_D'])
+                        #------------------------------------------------------------------#
                         nt = nt + ((fd_t/ft_D)*np.log(fd_t/ft_D))
+                        #------------------------------------------------------------------#
+            self.Words_info[word]['nt'] = -nt
 
-            Words_info[word]['nt'] = -nt
-        return Words_info
-
-    def tf_x_idf(self, Docs_info, Words_info):
+    def tf_x_idf(self):
         for tf_type in self.tf_type:
             for idf_type in self.idf_type:
-                for emotion in Docs_info:
-                    for doc in Docs_info[emotion]:
-                        Docs_info[emotion][doc][tf_type+idf_type] = {}
-                        for word in Docs_info[emotion][doc][tf_type]:
-                            tf = Docs_info[emotion][doc][tf_type][word]
-                            idf = Words_info[word][idf_type]
-
+                for emotion in self.Docs_info:
+                    for doc in self.Docs_info[emotion]:
+                        self.Docs_info[emotion][doc][tf_type+idf_type] = {}
+                        for word in self.Docs_info[emotion][doc][tf_type]:
+                            tf = self.Docs_info[emotion][doc][tf_type][word]
+                            idf = self.Words_info[word][idf_type]
+                            #------------------------------------------------------------------#
                             tfxidf = tf * idf
+                            #------------------------------------------------------------------#
+                            self.Docs_info[emotion][doc][tf_type+idf_type][word] = tfxidf
 
-                            Docs_info[emotion][doc][tf_type+idf_type][word] = tfxidf
-        return Docs_info
-
-    def dump(self,clz,filename):
-        utils.save_pkl_file(clz, filename)
-
+    def dump(self, filepath):
+        print 'start to dump Dataset_info.pkl, Docs_info.pkl, Words_info.pkl in \n'+filepath
+        utils.save_pkl_file(self.Docs_info, filepath+'/Docs_info.pkl')
+        utils.save_pkl_file(self.Words_info, filepath+'/Words_info.pkl')
+        utils.save_pkl_file(self.Dataset_info, filepath+'/Dataset_info.pkl')
 
     def load(self,filename):
         pass
-

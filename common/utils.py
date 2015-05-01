@@ -1,5 +1,5 @@
 
-import pickle
+import cPickle as pickle
 import logging
 
 def save_pkl_file(clz, filename):
