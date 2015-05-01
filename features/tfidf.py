@@ -1,5 +1,6 @@
 import sys, os
 sys.path.append('../')
+from collections import OrderedDict
 from common import utils, filename
 from .base import FeatureBase
 
@@ -27,14 +28,12 @@ class TFIDF(FeatureBase):
             self.tf3_k = 1.0
             self.tf3_b = 1.0
 
-        def calculate(self, **kwargs):
-            if 'Docs_info' in kwargs:
-                self.Docs_info = kwargs['Docs_info']
-            if 'avg_ld' in kwargs:
-                avg_ld = kwargs['avg_ld']
+        def calculate(self, Docs_info, avg_ld):
+            
+            self.Docs_info = Docs_info
 
             for i,emotion in enumerate(self.Docs_info):
-                print emotion, ' %d/%d' % (i,len(self.Docs_info))
+                print '(%d/%d) ' % (i+1,len(self.Docs_info)) +emotion+' tf complete!'
                 for doc in self.Docs_info[emotion]:
                     ld = self.Docs_info[emotion][doc]['ld']
 
@@ -82,18 +81,16 @@ class TFIDF(FeatureBase):
         def __init__(self, idf_type):
             self.idf_type = idf_type
 
-        def calculate(self, **kwargs):
-            if 'Words_info' in kwargs:
-                self.Words_info = kwargs['Words_info']
-            if 'D' in kwargs:
-                D = kwargs['D']
+        def calculate(self, Words_info, D):
+
+            self.Words_info = Words_info
+
             # calculate max_nt, and what words(max_nt_keys) hold max_nt value.
             if 'idf2' in self.idf_type: 
                 max_nt = max([self.Words_info[w]['nt'] for w in self.Words_info])
                 max_nt_keys = [key for key,value in self.Words_info.items() if value==max_nt]
 
             for i,word in enumerate(self.Words_info):
-                # print word, ' idf %d/%d' % (i,len(self.Words_info))
                 ft_D = self.Words_info[word]['ft_D']
 
                 if 'idf1' in self.idf_type:
@@ -111,6 +108,11 @@ class TFIDF(FeatureBase):
                 if 'idf3' in self.idf_type:
                     nt = self.Words_info[word]['nt']
                     self._idf3(word, nt, D)
+
+                if (i+1)%50000. == 0.:
+                    print '(%d/%d) words idf complete!' % (i+1,len(self.Words_info))
+                if (i+1) == len(self.Words_info):
+                    print '(%d/%d) words idf complete!' % (i+1,len(self.Words_info))
 
             return self.Words_info
 
@@ -145,12 +147,12 @@ class TFIDF(FeatureBase):
         self.tf_obj = self.TF(self.tf_type)
         self.idf_obj = self.IDF(self.idf_type)
 
-        self.Dataset_info = {}      ## dataset information contain: 
-                                    ## avg_ld, total_words_count, D, T
-        self.Docs_info = {}         ## documents information contain: 
-                                    ## ld, fd_t, tf
-        self.Words_info = {}        ## words information contain:
-                                    ## word_total_count, ft_D, nt, idf
+        self.Dataset_info = {}              ## dataset information contain: 
+                                            ## avg_ld, total_words_count, D, T
+        self.Docs_info = OrderedDict()      ## documents information contain: 
+                                            ## ld, fd_t, tf
+        self.Words_info = {}                ## words information contain:
+                                            ## word_total_count, ft_D, nt, idf
 
         self.emotions = filename.emotions[dataset]
 
@@ -181,8 +183,8 @@ class TFIDF(FeatureBase):
         avg_ld = 0             ## average document length in D
         #--------------------------------------------------------------------------
 
-        print 'start to preprocessing'
-        # self.emotions = self.emotions[33:35]
+        print '>> start to preprocessing'
+        # self.emotions = self.emotions[98:101]
         for i,emotion in enumerate(self.emotions):
             self.Docs_info[emotion] = {}
             filepath = os.path.join(filename, emotion+'_wordlists.pkl')
@@ -211,7 +213,7 @@ class TFIDF(FeatureBase):
                         self.Words_info[word]['word_total_count'] = dict(fd_t)[word]
                         self.Words_info[word]['ft_D'] = 1
                 D = D + 1
-            print emotion+'(%d/%d) preprocessing complete!' % (i,len(self.emotions))
+            print '(%d/%d) ' % (i+1,len(self.emotions)) +emotion+' preprocessing complete!'
 
         avg_ld = total_words_count / D
         T = len(self.Words_info)
@@ -228,22 +230,22 @@ class TFIDF(FeatureBase):
         ##                                       tf, idf, tfidf      in self.Docs_info
 
         if len(self.tf_type)>0:
-            print 'start to calculate tf'
+            print '>> start to calculate tf ', self.tf_type
             ## make tf1, tf2, tf3 (based on your requirement) in self.Docs_info
-            self.Docs_info = self.tf_obj.calculate(Docs_info=self.Docs_info, avg_ld=avg_ld)
+            self.Docs_info = self.tf_obj.calculate(self.Docs_info, avg_ld)
         
 
         if len(self.idf_type)>0:
             if 'idf2' in self.idf_type or 'idf3' in self.idf_type:
-                print 'start to calculate entropy'
+                print '>> start to calculate entropy'
                 ## make nt in self.Words_info
                 self.entropy()
-            print 'start to calculate idf'
+            print '>> start to calculate idf ', self.idf_type
             ## make idf1, idf2, idf3 (based on your requirement) in self.Words_info
-            self.Words_info = self.idf_obj.calculate(Words_info=self.Words_info, D=D)
+            self.Words_info = self.idf_obj.calculate(self.Words_info, D)
 
         if len(self.tf_type)>0 and len(self.idf_type)>0:
-            print 'start to calculate tfidf'
+            print '>> start to calculate tfidf'
             ## make tfxidf in self.Docs_info (based on what tf, idf pairs in self.Docs_info)
             self.tf_x_idf()
 
@@ -255,7 +257,7 @@ class TFIDF(FeatureBase):
         import numpy as np
         count = 0
         for i,word in enumerate(self.Words_info):
-            print word, ' entropy %d/%d' % (i,len(self.Words_info))
+            print word, ' entropy %d/%d' % (i+1,len(self.Words_info))
             ft_D = float(self.Words_info[word]['ft_D'])
             nt = 0.
             for emotion in self.Docs_info:
@@ -268,8 +270,9 @@ class TFIDF(FeatureBase):
             self.Words_info[word]['nt'] = -nt
 
     def tf_x_idf(self):
-        for tf_type in self.tf_type:
-            for idf_type in self.idf_type:
+        for i,tf_type in enumerate(self.tf_type):
+            for j,idf_type in enumerate(self.idf_type):
+                print '(%d/%d)  calculating %s x %s' % ((i+1)*(j+1),len(self.tf_type)*len(self.idf_type), tf_type, idf_type)
                 for emotion in self.Docs_info:
                     for doc in self.Docs_info[emotion]:
                         self.Docs_info[emotion][doc][tf_type+idf_type] = {}
