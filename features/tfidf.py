@@ -3,8 +3,6 @@ sys.path.append('../')
 from common import utils, filename
 from .base import FeatureBase
 
-
-
 '''USAGE
 
 # -*- coding: utf8 -*-
@@ -285,9 +283,9 @@ class TFIDF(FeatureBase):
 
     def dump(self, filepath, postfix):
         print 'start to dump Dataset_info.pkl, Docs_info.pkl, Words_info.pkl in \n'+filepath
-        utils.save_pkl_file(self.Docs_info, filepath+'/qDocs_info_'+postfix+'.pkl')
-        utils.save_pkl_file(self.Words_info, filepath+'/qWords_info_'+postfix+'.pkl')
-        utils.save_pkl_file(self.Dataset_info, filepath+'/qDataset_info_'+postfix+'.pkl')
+        utils.save_pkl_file(self.Docs_info, filepath+'/Docs_info_'+postfix+'.pkl')
+        utils.save_pkl_file(self.Words_info, filepath+'/Words_info_'+postfix+'.pkl')
+        utils.save_pkl_file(self.Dataset_info, filepath+'/Dataset_info_'+postfix+'.pkl')
 
     def load(self,filename):
         pass
