@@ -78,8 +78,9 @@ class Dataset:
                 loglevel
         """
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
 
         # only use 40 emotions
         self.emotions = filename.emotions['LJ40K']
@@ -146,8 +147,9 @@ class FusedDataset:
         """
 
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
 
         self.idxs = idxs
         self.feature_name = []
@@ -193,8 +195,9 @@ class RandomIndex:
         """
 
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
 
         self.zero_vector_idxs_filename = None if 'zero_vector_idxs_filename' not in kwargs else kwargs['zero_vector_idxs_filename']
         self.emotions = filename.emotions['LJ40K'] if 'emotions' not in kwargs else kwargs['emotions']

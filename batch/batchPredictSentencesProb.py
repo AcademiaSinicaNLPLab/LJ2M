@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # load models
     learners = {}
     for emotion in emotions:
-        learners[emotion] = SVM(loglevel=loglevel)
+        learners[emotion] = SVM()
         
         if args.scaler_folder != None:
             fpath = os.path.join(args.scaler_folder, filename.get_filename_by_emotion(emotion, args.scaler_folder))

@@ -41,8 +41,9 @@ class SVM(LearnerBase):
             with_std
         """
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
+        self.logger.setLevel(loglevel)
 
         self.do_scaling = False if 'scaling' not in kwargs else kwargs['scaling']
         self.with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
