@@ -101,7 +101,7 @@ if __name__ == '__main__':
             os.makedirs(emotion_dir)
 
         # load test data
-        fpath = os.path.join(args.feature_folder, filename.get_filename_by_emotion(emotion, args.feature_folder))
+        fpath = os.path.join(args.feature_folder, filename.get_filename_by_emotion(emotion_name, args.feature_folder))
         logger.info('loading test data %s' % (fpath))
         test_data = utils.load_pkl_file(fpath)
 
@@ -113,10 +113,10 @@ if __name__ == '__main__':
             probs = {}
 
             # predict on 40 models
-            for emotion in emotions:
-                logger.debug('predicting with "%s" classifier' % (emotion))
-                results = learners[emotion].predict(test_data[doc_idx]['X'], None, X_predict_prob=True)
-                probs[emotion] = results['X_predict_prob'].tolist()
+            for classifier_emotion in emotions:
+                logger.debug('predicting with "%s" classifier' % (classifier_emotion))
+                results = learners[classifier_emotion].predict(test_data[doc_idx]['X'], None, X_predict_prob=True)
+                probs[classifier_emotion] = results['X_predict_prob'].tolist()
 
             # output csv
             fpath = os.path.join(emotion_dir, '%u.csv' % (doc_idx))
