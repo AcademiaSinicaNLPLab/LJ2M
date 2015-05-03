@@ -83,7 +83,7 @@ if __name__ == '__main__':
             learners[emotion].load_scaler(fpath)
 
         fpath = os.path.join(args.model_folder, filename.get_filename_by_emotion(emotion, args.model_folder))
-        logger.debug('loading model for emotion %s' % (emotion))
+        logger.info('loading model for emotion %s' % (emotion))
         learners[emotion].load_model(fpath)
 
 
