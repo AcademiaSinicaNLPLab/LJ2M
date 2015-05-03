@@ -147,12 +147,18 @@ class SVM(LearnerBase):
         if self.do_scaling:
             self.logger.debug('scaler transforms X_test')
             X_test = self.scaler.transform(X_test)
+        
+        if y_test != None:
+            self.logger.info('y_test = %s', str(y_test.shape))
 
-        self.logger.info('y_test = %s', str(y_test.shape))
-        y_predict = self.clf.predict(X_test)
-        X_predict_prob = self.clf.predict_proba(X_test) if self.clf.probability else 0
+        if 'weighted_score' in kwargs or 'y_predict' in kwargs:
+            y_predict = self.clf.predict(X_test)
+
+        if 'X_predict_prob' in kwargs or 'auc' in kwargs:
+            X_predict_prob = self.clf.predict_proba(X_test) if self.clf.probability else 0
+
         results = {}
-        if 'score' in kwargs and kwargs['score'] == True:
+        if 'score' in kwargs and kwargs['score'] == True:            
             results.update({'score': self.clf.score(X_test, y_test.tolist())})
             self.logger.info('score = %f', results['score'])
 

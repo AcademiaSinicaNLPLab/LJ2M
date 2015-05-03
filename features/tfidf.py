@@ -191,6 +191,7 @@ class TFIDF(FeatureBase):
             # docs = docs[0:10]
             for d, doc in enumerate(docs):
                 wordlist = sum(doc, [])
+                import pdb; pdb.set_trace()
                 self.Docs_info[emotion][d] = {}
 
                 ld = len(wordlist)
