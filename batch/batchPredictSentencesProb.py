@@ -30,22 +30,6 @@ def get_arguments(argv):
     args = parser.parse_args(argv)
     return args
 
-def output_emotions(filename, probs, emotions):
-
-    n_sentence = len(probs[probs.keys()[0]])
-    output_list = []
-
-    # do transpose
-    for i in range(n_sentence):
-        sentence_list = []
-        for emotion in emotions:
-            sentence_list.append(probs[emotion][i])
-        output_list.append(sentence_list)
-
-    with open(filename, 'w') as f:
-        writer = csv.writer(f)
-        writer.writerows(output_list)
-
 
 if __name__ == '__main__':
 
@@ -65,7 +49,7 @@ if __name__ == '__main__':
         logger.info('create output folder %s' % (args.output_folder))
         os.makedirs(args.output_folder)
     else:
-        args.output_folder = output.create_folder_with_time('output')
+        args.output_folder = output.create_folder_with_time('probs')
         logger.info('create output folder %s' % (args.output_folder))
 
     emotions = filename.emotions['LJ40K']
@@ -108,17 +92,31 @@ if __name__ == '__main__':
             logger.debug('predicting doc %u' % (doc_idx))
 
             # init result matrix
-            probs = {}
+            probs = []
+            n_sentence = test_data[doc_idx]['X'].shape[0]
+            for i in range(n_sentence):
+                probs.append(dict.fromkeys(emotions))
 
             # predict on 40 models
             for classifier_emotion in emotions:
-                logger.info('predicting with "%s" classifier' % (classifier_emotion))
+                logger.debug('predicting with "%s" classifier' % (classifier_emotion))
                 results = learners[classifier_emotion].predict(test_data[doc_idx]['X'], None, X_predict_prob=True)
-                probs[classifier_emotion] = results['X_predict_prob'].tolist()
+                prob_list = results['X_predict_prob'].tolist()
+                for i in range(n_sentence):
+                    probs[i][classifier_emotion] = prob_list[i] 
+
+            # transform to list of dictionary
+            # probs_list = []
+            # n_sentence = len(probs[probs.keys()[0]])
+            # for i in range(n_sentence):
+            #     emotion_prob_dict = {}
+            #     for emotion in emotions:
+            #         emotion_prob_dict[emotion] = probs[emotion][i]
+            #     probs_list.append(emotion_prob_dict)
 
             # output csv
-            fpath = os.path.join(emotion_dir, '%u.csv' % (doc_idx))
-            logger.debug('writing probs to %s' % (fpath))
             # we output the file in LJ40K_feelingwheel order
-            output_emotions(fpath, probs, filename.emotions['LJ40K_feelingwheel'])
+            fpath = os.path.join(emotion_dir, '%u.csv' % (doc_idx))
+            emotion_prob = output.EmotionProb(emotions=filename.emotions['LJ40K_feelingwheel'], probs=probs, loglevel=loglevel)
+            emotion_prob.dump_csv(fpath)
                 

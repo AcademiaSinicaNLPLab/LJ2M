@@ -58,4 +58,14 @@ def read_parameter_file(file_path):
             param_dict[toks[0]] = toks[1], toks[2]
 
     return param_dict
-    
+
+def rgba_to_rgb(rgba, bg=(255,255,255)):
+    ''' 
+    convert RGBA to RGB upder different background
+    '''
+    bg_r, bg_g, bg_b = bg
+    if type(rgba) not in (tuple, list) or len(rgba) != 4:
+        raise TypeError('rgba is a tuple or list containing four values')
+
+    r, g, b, a = rgba
+    return tuple(map(lambda x:int(x), [(1-a)*bg_r + a*r, (1-a)*bg_g + a*g, (1-a)*bg_b + a*b]))  
