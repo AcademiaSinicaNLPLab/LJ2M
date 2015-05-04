@@ -2,6 +2,7 @@
 import os
 import csv
 import time
+import logging
 
 def create_folder_with_time(prefix):
     t = time.strftime('%y%m%d%H%M%S', time.localtime(time.time()))
@@ -22,3 +23,19 @@ def dump_list_to_csv(file_name, data):
     w = csv.writer(open(file_name, 'w'))
     for row in data:
         w.writerow(row)
+
+
+class EmotionProb:
+
+    def __init__(self, **kwargs):
+
+
+
+
+
+
+
+
+
+
+

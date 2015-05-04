@@ -1,7 +1,6 @@
 
 import os
 import sys
-sys.path.append('../')
 
 import logging
 import random

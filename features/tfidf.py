@@ -1,5 +1,4 @@
 import sys, os
-sys.path.append('../')
 from collections import OrderedDict
 from common import utils, filename
 from .base import FeatureBase

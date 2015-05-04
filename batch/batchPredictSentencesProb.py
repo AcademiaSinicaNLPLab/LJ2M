@@ -1,6 +1,4 @@
 import sys
-sys.path.append( "../" )
-
 import os
 import argparse
 import logging
@@ -114,7 +112,7 @@ if __name__ == '__main__':
 
             # predict on 40 models
             for classifier_emotion in emotions:
-                logger.debug('predicting with "%s" classifier' % (classifier_emotion))
+                logger.info('predicting with "%s" classifier' % (classifier_emotion))
                 results = learners[classifier_emotion].predict(test_data[doc_idx]['X'], None, X_predict_prob=True)
                 probs[classifier_emotion] = results['X_predict_prob'].tolist()
 
