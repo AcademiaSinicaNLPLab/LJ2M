@@ -17,6 +17,8 @@ def get_arguments(argv):
     #                     help='a list that contains emotion ids ranged from 0-39 (DEFAULT: 0). This can be a range expression, e.g., 3-6,7,8,10-15')
     parser.add_argument('-o', '--output_folder', metavar='OUTPUT_FOLDER', default=None, 
                         help='output folder, if not specified, create it with name equal to system time')
+    parser.add_argument('-p', '--prob_threshold', metavar='PROB_THRESHOLD', default=0.5, 
+                        help='threshold to filter image colors (Default: 0.5).')
 
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
@@ -71,5 +73,5 @@ if __name__ == '__main__':
                 raise ValueError('file %s existed ' % (fpath))
 
             # ToDo: fine tune prob_threshold
-            emotion_prob.dump_png(fpath, color_background=(255, 255, 255), alpha=True, prob_theshold=0.5)
+            emotion_prob.dump_png(fpath, color_background=(255, 255, 255), alpha=True, prob_theshold=args.prob_threshold)
 

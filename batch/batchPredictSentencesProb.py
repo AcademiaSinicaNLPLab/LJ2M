@@ -22,6 +22,10 @@ def get_arguments(argv):
                         help='folder that contains scaler files')
     parser.add_argument('-o', '--output_folder', metavar='OUTPUT_FOLDER', default=None, 
                         help='output folder, if not specified, create it with name equal to system time')
+    parser.add_argument('-i', '--dump_png', metavar='DUMP_PNG', action='store_true', default=False, 
+                        help='dump .png images (Default: False)')
+    parser.add_argument('-p', '--prob_threshold', metavar='PROB_THRESHOLD', default=0.5, 
+                        help='threshold to filter image colors (Default: 0.5).')
 
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
@@ -119,4 +123,8 @@ if __name__ == '__main__':
             fpath = os.path.join(emotion_dir, '%u.csv' % (doc_idx))
             emotion_prob = output.EmotionProb(emotions=filename.emotions['LJ40K_feelingwheel'], probs=probs, loglevel=loglevel)
             emotion_prob.dump_csv(fpath)
+
+            if args.dump_png:
+                fpath = os.path.join(emotion_dir, '%u.png' % (doc_idx))
+                emotion_prob.dump_png(fpath, color_background=(255, 255, 255), alpha=True, prob_theshold=args.prob_threshold))
                 
