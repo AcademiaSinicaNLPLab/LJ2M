@@ -232,7 +232,7 @@ class RandomIndex:
         return (train, dev, test)
 
     def _get_random_subset(self, entire_set, nsubset):
-        dup = entire_set
+        dup = list(entire_set)
         random.shuffle(dup)
         return dup[:nsubset]
 
