@@ -13,8 +13,10 @@ def get_arguments(argv):
     parser = argparse.ArgumentParser(description='predict sentence probabilities')
     parser.add_argument('model_folder', metavar='MODEL_FOLDER', 
                         help='folder that contains models files')
+    # ToDo: fused feature and feature list file
     parser.add_argument('feature_folder', metavar='FEATURE_FOLDER', 
                         help='folder that contains feature files')
+
 
     parser.add_argument('-e', '--emotion_ids', metavar='EMOTION_IDS', type=utils.parse_range, default=[0], 
                         help='a list that contains emotion ids ranged from 0-39 (DEFAULT: 0). This can be a range expression, e.g., 3-6,7,8,10-15')
