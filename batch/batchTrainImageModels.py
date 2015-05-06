@@ -62,10 +62,12 @@ if __name__ == '__main__':
     logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel) 
     logger = logging.getLogger(__name__)
 
+    import pdb; pdb.set_trace()
     # pre-checking
-    if None != args.output_folder and not os.path.exists(args.output_folder):
-        logger.info('create output folder %s' % (args.output_folder))
-        os.makedirs(args.output_folder)
+    if None != args.output_folder:
+        if not os.path.exists(args.output_folder):
+            logger.info('create output folder %s' % (args.output_folder))
+            os.makedirs(args.output_folder)
     else:
         args.output_folder = output.create_folder_with_time('models')
         logger.info('create output folder %s' % (args.output_folder))
@@ -134,25 +136,25 @@ if __name__ == '__main__':
                 logger.info('[%s] dumpping model to %s' % (emotion_name, fpath))
                 l.dump_model(fpath)
 
-    #             if not args.no_predict:
-    #                 result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True)
-    #                 if result['score'] > best_res[emotion_name]['score']:
-    #                     best_res[emotion_name]['score'] = result['score']
-    #                     best_res[emotion_name]['gamma'] = g
-    #                     best_res[emotion_name]['c'] = c
-    #                     best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
-    #                     best_res[emotion_name]['auc'] = result['auc']
+                if not args.no_predict:
+                    result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True)
+                    if result['score'] > best_res[emotion_name]['score']:
+                        best_res[emotion_name]['score'] = result['score']
+                        best_res[emotion_name]['gamma'] = g
+                        best_res[emotion_name]['c'] = c
+                        best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
+                        best_res[emotion_name]['auc'] = result['auc']
 
-    #     if not args.no_predict:
-    #         logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
-    #         logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))
-    #         logger.info("[%s] best c = %f" % (emotion_name, best_res[emotion_name]['c']))
-    #         logger.info("[%s] best prob = %s" % (emotion_name, str(best_res[emotion_name]['X_predict_prob'])))
-    #         logger.info("[%s] best auc = %f" % (emotion_name, best_res[emotion_name]['auc']))
+        if not args.no_predict:
+            logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
+            logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))
+            logger.info("[%s] best c = %f" % (emotion_name, best_res[emotion_name]['c']))
+            logger.info("[%s] best prob = %s" % (emotion_name, str(best_res[emotion_name]['X_predict_prob'])))
+            logger.info("[%s] best auc = %f" % (emotion_name, best_res[emotion_name]['auc']))
 
 
-    # if not args.no_predict:
-    #     fpath = os.path.join(args.output_folder, 'best_results.pkl')
-    #     logger.info('dumpping best results to %s' % (fpath))
-    #     utils.save_pkl_file(best_res, fpath)           
-    #     # ToDo: make csv file
+    if not args.no_predict:
+        fpath = os.path.join(args.output_folder, 'best_results.pkl')
+        logger.info('dumpping best results to %s' % (fpath))
+        utils.save_pkl_file(best_res, fpath)           
+        # ToDo: make csv file
