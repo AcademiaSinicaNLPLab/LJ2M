@@ -261,7 +261,7 @@ class RandomIndex:
         for emotion in self.emotions:
 
             emotion_dir = os.path.join(root, emotion)
-            ndoc = len(set(os.listdir(emotion_dir)) - set(['.', '..']))     # minus . and ..
+            ndoc = len([x for x in os.listdir(emotion_dir) if x.endswith('csv')])
             self.logger.info("emotion = %s, ndoc = %u", emotion, ndoc)
             
             train[emotion] = {}

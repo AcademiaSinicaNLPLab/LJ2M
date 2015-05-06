@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
 
     if not args.no_predict:
-        fpath = os.path.join(args.output_folder, 'best_results.pkl')
+        fpath = os.path.join(args.output_folder, 'best_results_%s.pkl' % (str(emotion_ids)))
         logger.info('dumpping best results to %s' % (fpath))
         utils.save_pkl_file(best_res, fpath)           
         # ToDo: make csv file
