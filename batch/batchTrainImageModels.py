@@ -86,7 +86,6 @@ if __name__ == '__main__':
     # read parameter file
     if args.parameter_file != None:
         param_dict = utils.read_parameter_file(args.parameter_file)
-    import pdb; pdb.set_trace()
 
     # main loop
     best_res = {}
