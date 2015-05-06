@@ -37,8 +37,8 @@ def get_arguments(argv):
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
                         help='do not perform feature scaling (DEFAULT: False)')
-    # parser.add_argument('-r', '--no_predict', action='store_true', default=False,
-    #                     help='do not perform prediction on dev data (DEFAULT: False)')
+    parser.add_argument('-r', '--no_predict', action='store_true', default=False,
+                        help='do not perform prediction on dev data (DEFAULT: False)')
 
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')

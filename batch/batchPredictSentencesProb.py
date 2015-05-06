@@ -51,9 +51,10 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
 
     # pre-checking
-    if None != args.output_folder and not os.path.exists(args.output_folder):
-        logger.info('create output folder %s' % (args.output_folder))
-        os.makedirs(args.output_folder)
+    if None != args.output_folder:
+        if not os.path.exists(args.output_folder):
+            logger.info('create output folder %s' % (args.output_folder))
+            os.makedirs(args.output_folder)
     else:
         args.output_folder = output.create_folder_with_time('probs')
         logger.info('create output folder %s' % (args.output_folder))
@@ -63,12 +64,13 @@ if __name__ == '__main__':
 
     # load models
     learners = {}
+    scalers = {}
     for emotion in emotions:
         learners[emotion] = SVM()
         
         if args.scaler_folder != None:
             fpath = os.path.join(args.scaler_folder, filename.get_filename_by_emotion(emotion, args.scaler_folder))
-            learners[emotion].load_scaler(fpath)
+            scalers[emotion] = utils.load_pkl_file(fpath)
 
         fpath = os.path.join(args.model_folder, filename.get_filename_by_emotion(emotion, args.model_folder))
         logger.info('loading model for emotion %s' % (emotion))
@@ -97,28 +99,21 @@ if __name__ == '__main__':
         for doc_idx in range(len(test_data)):
             logger.debug('predicting doc %u' % (doc_idx))
 
+            X_test = scalers[emotion_name].transform(test_data[doc_idx]['X'])
+
             # init result matrix
             probs = []
-            n_sentence = test_data[doc_idx]['X'].shape[0]
+            n_sentence = X_test.shape[0]
             for i in range(n_sentence):
                 probs.append(dict.fromkeys(emotions))
 
             # predict on 40 models
             for classifier_emotion in emotions:
                 logger.debug('predicting with "%s" classifier' % (classifier_emotion))
-                results = learners[classifier_emotion].predict(test_data[doc_idx]['X'], None, X_predict_prob=True)
+                results = learners[classifier_emotion].predict(X_test, None, X_predict_prob=True)
                 prob_list = results['X_predict_prob'].tolist()
                 for i in range(n_sentence):
                     probs[i][classifier_emotion] = prob_list[i] 
-
-            # transform to list of dictionary
-            # probs_list = []
-            # n_sentence = len(probs[probs.keys()[0]])
-            # for i in range(n_sentence):
-            #     emotion_prob_dict = {}
-            #     for emotion in emotions:
-            #         emotion_prob_dict[emotion] = probs[emotion][i]
-            #     probs_list.append(emotion_prob_dict)
 
             # output csv
             # we output the file in LJ40K_feelingwheel order

@@ -127,6 +127,10 @@ class Dataset:
             X[cnt:cnt+n_neg_typed] = self.X[neg_emotion][idxs_neg]
             cnt += n_neg_typed
         
+        #debug
+        #utils.save_pkl_file(X, 'debug_X_%s_%s.pkl' % (set_type, emotion))
+        #utils.save_pkl_file(y, 'debug_y_%s_%s.pkl' % (set_type, emotion))
+
         assert cnt == n_pos + n_neg
         return X, y
 

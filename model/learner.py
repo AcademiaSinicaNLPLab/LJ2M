@@ -110,26 +110,27 @@ class SVM(LearnerBase):
         except ValueError:
             self.logger.error("failed to dump %s" % (file_name))
 
-    def dump_scaler(self, file_name):
-        try:
-            if self.scaling:
-                pickle.dump(self.scaler, open(file_name, "w"))
-            else:
-                self.logger.warning("scaler doesn't exist")
-        except ValueError:
-            self.logger.error("failed to dump %s" % (file_name))
+    # ToDo: change architecture, scaler leave this class
+    # def dump_scaler(self, file_name):
+    #     try:
+    #         if self.scaling:
+    #             pickle.dump(self.scaler, open(file_name, "w"))
+    #         else:
+    #             self.logger.warning("scaler doesn't exist")
+    #     except ValueError:
+    #         self.logger.error("failed to dump %s" % (file_name))
+
+    # def load_scaler(self, file_name):
+    #     try:
+    #         self.scaler = pickle.load(open(file_name, "r"))
+    #         if self.scaler:
+    #             self.scaling = True
+    #     except ValueError:
+    #         self.logger.error("failed to load %s" % (file_name))
 
     def load_model(self, file_name):
         try:
             self.clf = pickle.load(open(file_name, "r"))
-        except ValueError:
-            self.logger.error("failed to load %s" % (file_name))
-
-    def load_scaler(self, file_name):
-        try:
-            self.scaler = pickle.load(open(file_name, "r"))
-            if self.scaler:
-                self.scaling = True
         except ValueError:
             self.logger.error("failed to load %s" % (file_name))
 
@@ -149,7 +150,7 @@ class SVM(LearnerBase):
             self.logger.debug('scaler transforms X_test')
             X_test = self.scaler.transform(X_test)
         
-        if y_test != None:
+        if y_test is not None:
             self.logger.info('y_test = %s', str(y_test.shape))
 
         if 'weighted_score' in kwargs or 'y_predict' in kwargs:
