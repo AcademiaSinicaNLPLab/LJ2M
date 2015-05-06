@@ -62,7 +62,6 @@ if __name__ == '__main__':
     logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel) 
     logger = logging.getLogger(__name__)
 
-    import pdb; pdb.set_trace()
     # pre-checking
     if None != args.output_folder:
         if not os.path.exists(args.output_folder):

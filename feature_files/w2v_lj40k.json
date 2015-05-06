@@ -1,0 +1,10 @@
+[
+    {
+        "name": "w2v300",
+        "data": {
+            "dir": "/corpus/LJ40K/data/featurevecs/raw/w2vStanford_rmP",
+            "file_prefix": "w2vStanford_rmP",
+            "file_postfix": "Xy.pkl"
+        }
+    }
+]
