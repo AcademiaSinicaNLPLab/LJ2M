@@ -24,7 +24,7 @@ def get_arguments(argv):
                         help='folder that contains scaler files')
     parser.add_argument('-o', '--output_folder', metavar='OUTPUT_FOLDER', default=None, 
                         help='output folder, if not specified, create it with name equal to system time')
-    parser.add_argument('-i', '--dump_png', metavar='DUMP_PNG', action='store_true', default=False, 
+    parser.add_argument('-i', '--dump_png', action='store_true', default=False, 
                         help='dump .png images (Default: False)')
     parser.add_argument('-p', '--prob_threshold', metavar='PROB_THRESHOLD', default=0.5, 
                         help='threshold to filter image colors (Default: 0.5).')
@@ -128,5 +128,5 @@ if __name__ == '__main__':
 
             if args.dump_png:
                 fpath = os.path.join(emotion_dir, '%u.png' % (doc_idx))
-                emotion_prob.dump_png(fpath, color_background=(255, 255, 255), alpha=True, prob_theshold=args.prob_threshold))
+                emotion_prob.dump_png(fpath, color_background=(255, 255, 255), alpha=True, prob_theshold=args.prob_threshold)
                 

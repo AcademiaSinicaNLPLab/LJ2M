@@ -37,6 +37,8 @@ def get_arguments(argv):
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
                         help='do not perform feature scaling (DEFAULT: False)')
+    parser.add_argument('-r', '--no_predict', action='store_true', default=False,
+                        help='do not perform prediction on dev data (DEFAULT: False)')
 
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
@@ -133,24 +135,25 @@ if __name__ == '__main__':
                 logger.info('[%s] dumpping model to %s' % (emotion_name, fpath))
                 l.dump_model(fpath)
 
-                result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True)
-                if result['score'] > best_res[emotion_name]['score']:
-                    best_res[emotion_name]['score'] = result['score']
-                    best_res[emotion_name]['gamma'] = g
-                    best_res[emotion_name]['c'] = c
-                    best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
-                    best_res[emotion_name]['auc'] = result['auc']
+                if not args.no_predict:
+                    result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True)
+                    if result['score'] > best_res[emotion_name]['score']:
+                        best_res[emotion_name]['score'] = result['score']
+                        best_res[emotion_name]['gamma'] = g
+                        best_res[emotion_name]['c'] = c
+                        best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
+                        best_res[emotion_name]['auc'] = result['auc']
+
+        if not args.no_predict:
+            logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
+            logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))
+            logger.info("[%s] best c = %f" % (emotion_name, best_res[emotion_name]['c']))
+            logger.info("[%s] best prob = %s" % (emotion_name, str(best_res[emotion_name]['X_predict_prob'])))
+            logger.info("[%s] best auc = %f" % (emotion_name, best_res[emotion_name]['auc']))
 
 
-        logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
-        logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))
-        logger.info("[%s] best c = %f" % (emotion_name, best_res[emotion_name]['c']))
-        logger.info("[%s] best prob = %s" % (emotion_name, str(best_res[emotion_name]['X_predict_prob'])))
-        logger.info("[%s] best auc = %f" % (emotion_name, best_res[emotion_name]['auc']))
-
-
-
-    fpath = os.path.join(args.output_folder, 'best_results.pkl')
-    logger.info('dumpping best results to %s' % (fpath))
-    utils.save_pkl_file(best_res, fpath)           
-    # ToDo: make csv file
+    if not args.no_predict:
+        fpath = os.path.join(args.output_folder, 'best_results.pkl')
+        logger.info('dumpping best results to %s' % (fpath))
+        utils.save_pkl_file(best_res, fpath)           
+        # ToDo: make csv file

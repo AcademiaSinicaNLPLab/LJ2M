@@ -76,8 +76,8 @@ class SVM(LearnerBase):
             kernel: 'rbf', ...
             C: float; svm parameters
         """
-        self.logger.debug("%u samples x %u features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
-        self.logger.debug("%u samples in y_train" % ( y_train.shape[0] ))
+        self.logger.info("%u samples x %u features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
+        self.logger.info("%u samples in y_train" % ( y_train.shape[0] ))
 
         if self.do_scaling:
             self.scaler = StandardScaler(with_mean=self.with_mean, with_std=self.with_std)
