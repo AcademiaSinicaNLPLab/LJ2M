@@ -256,12 +256,17 @@ class RandomIndex:
         train = {}
         dev = {}
         test = {}
-
+        
         # generate positive indices
         for emotion in self.emotions:
 
             emotion_dir = os.path.join(root, emotion)
             ndoc = len([x for x in os.listdir(emotion_dir) if x.endswith('csv')])
+
+            # for LJ40K we do not have the extension on documents
+            if ndoc == 0:
+                ndoc = len([x for x in os.listdir(emotion_dir) if x[0].isdigit()])
+
             self.logger.info("emotion = %s, ndoc = %u", emotion, ndoc)
             
             train[emotion] = {}
@@ -273,7 +278,7 @@ class RandomIndex:
             self.logger.debug("len(dev[%s][%s]) = %u" % (emotion, emotion, len(dev[emotion][emotion]))) 
             self.logger.debug("len(test[%s][%s]) = %u" % (emotion, emotion, len(test[emotion][emotion]))) 
 
-        # remove the zero vectors collected by Sven for LJ2M
+        # remove the zero vectors collected by Sven for LJ2M, so we use the rule 'start with digit' to judge 
         if self.zero_vector_idxs_filename != None:
             self._remove_zero_vector_index(train, dev, test, pickle.load(open(self.zero_vector_idxs_filename)))
 

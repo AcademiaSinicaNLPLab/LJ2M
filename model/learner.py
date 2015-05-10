@@ -101,7 +101,7 @@ class SVM(LearnerBase):
         #self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state, class_weight='auto')
         self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state)
         self.logger.debug("%s C=%f gamma=%f probability=%d" % (kernel, C, gamma, self.prob))
-
+        
         self.clf.fit(X_train, y_train)
     
     def dump_model(self, file_name):

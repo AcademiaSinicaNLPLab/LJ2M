@@ -31,6 +31,8 @@ def get_arguments(argv):
                         help='a list that contains emotion ids ranged from 0-39 (DEFAULT: 0). This can be a range expression, e.g., 3-6,7,8,10-15')
     parser.add_argument('-p', '--parameter_file', metavar='PARAMETER_FILE', default=None, 
                         help='a file include parameter C and gamma')
+    parser.add_argument('-k', '--svm_kernel', metavar='SVM_KERNEL', default='rbf', 
+                        help='svm kernel type (DEFAULT: "rbf")')
     parser.add_argument('-c', metavar='C', type=utils.parse_list, default=[1.0], 
                         help='SVM parameter (DEFAULT: 1). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-g', '--gamma', metavar='GAMMA', type=utils.parse_list, default=[0.0003], 
@@ -95,7 +97,7 @@ if __name__ == '__main__':
 
         emotion_name = filename.emotions['LJ40K'][emotion_id]
         logger.info('training model for emotion "%s"' % emotion_name)
-
+        
         X_train, y_train = fused_dataset.get_dataset(emotion_name, 'train')
         X_dev, y_dev = fused_dataset.get_dataset(emotion_name, 'dev')
 
@@ -127,7 +129,7 @@ if __name__ == '__main__':
 
                 logger.info('[%s] start training: c=%f, gamma=%f' % (emotion_name, c, g))
                 start_time = time.time()
-                l.train(C=c, kernel='rbf', gamma=g, prob=True, random_state=np.random.RandomState(0))
+                l.train(C=c, kernel=args.svm_kernel, gamma=g, prob=True, random_state=np.random.RandomState(0))
                 end_time = time.time()
                 logger.info('[%s] training time = %f s' % (emotion_name, end_time-start_time))
 
