@@ -13,6 +13,8 @@ from .base import LearnerBase
 
 class SVM(LearnerBase):
     """
+    X, y should be numpy array
+
     usage:
         >> from models import learners
         >> learner = learners.SVM(loglevel=logging.ERROR) 
@@ -23,7 +25,7 @@ class SVM(LearnerBase):
         >>  for gamma in gammas:
         >>      score = learner.kFold(kfolder, classifier='SVM', 
         >>                          kernel='rbf', prob=False, 
-        >>                          C=c, scaling=True, gamma=gamma)
+        >>                          C=c, gamma=gamma)
         >>      scores.update({(c, gamma): score})
         >>
         >> best_C, best_gamma = max(scores.iteritems(), key=operator.itemgetter(1))[0]
@@ -36,7 +38,6 @@ class SVM(LearnerBase):
         """
         options:
             loglevel
-            do_scaling
             with_mean
             with_std
         """
@@ -45,7 +46,6 @@ class SVM(LearnerBase):
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
         self.logger.setLevel(loglevel)
 
-        self.do_scaling = False if 'scaling' not in kwargs else kwargs['scaling']
         self.with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         self.with_std = True if 'with_std' not in kwargs else kwargs['with_std']
 
@@ -68,7 +68,7 @@ class SVM(LearnerBase):
     def _train(self, X_train, y_train, **kwargs):
         """
         required:
-            X_train, y_train
+            X_train, y_train: numpy array
 
         options:
             prob: True/False. Esimate probability during training
@@ -78,12 +78,6 @@ class SVM(LearnerBase):
         """
         self.logger.info("%u samples x %u features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
         self.logger.info("%u samples in y_train" % ( y_train.shape[0] ))
-
-        if self.do_scaling:
-            self.scaler = StandardScaler(with_mean=self.with_mean, with_std=self.with_std)
-            ## apply scaling on X
-            self.logger.debug("applying a standard scaling with_mean=%d, with_std=%d" % (self.with_mean, self.with_std))
-            X_train = self.scaler.fit_transform(X_train)
 
         ## determine whether using predict or predict_proba
         self.prob = False if 'prob' not in kwargs else kwargs["prob"]
@@ -98,6 +92,7 @@ class SVM(LearnerBase):
         gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
         
         # we use weighted classifier because we might use skewed positive/negative data
+        self.logger.info('svm parameters: c=%f, gamma=%f, kernel=%s' % (C, gamma, kernel))
         #self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state, class_weight='auto')
         self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state)
         self.logger.debug("%s C=%f gamma=%f probability=%d" % (kernel, C, gamma, self.prob))
@@ -109,24 +104,6 @@ class SVM(LearnerBase):
             pickle.dump(self.clf, open(file_name, "w"))
         except ValueError:
             self.logger.error("failed to dump %s" % (file_name))
-
-    # ToDo: change architecture, scaler leave this class
-    # def dump_scaler(self, file_name):
-    #     try:
-    #         if self.scaling:
-    #             pickle.dump(self.scaler, open(file_name, "w"))
-    #         else:
-    #             self.logger.warning("scaler doesn't exist")
-    #     except ValueError:
-    #         self.logger.error("failed to dump %s" % (file_name))
-
-    # def load_scaler(self, file_name):
-    #     try:
-    #         self.scaler = pickle.load(open(file_name, "r"))
-    #         if self.scaler:
-    #             self.scaling = True
-    #     except ValueError:
-    #         self.logger.error("failed to load %s" % (file_name))
 
     def load_model(self, file_name):
         try:
@@ -145,10 +122,6 @@ class SVM(LearnerBase):
             X_predict_prob
             auc
         '''
-        
-        if self.do_scaling:
-            self.logger.debug('scaler transforms X_test')
-            X_test = self.scaler.transform(X_test)
         
         if y_test is not None:
             self.logger.info('y_test = %s', str(y_test.shape))

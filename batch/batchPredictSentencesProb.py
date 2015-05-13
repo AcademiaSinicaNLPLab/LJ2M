@@ -7,7 +7,8 @@ import csv
 from common import utils
 from common import filename
 from common import output
-from model.learner import SVM
+
+import model.svm as learner
 
 def get_arguments(argv):
     parser = argparse.ArgumentParser(description='predict sentence probabilities')
@@ -66,7 +67,7 @@ if __name__ == '__main__':
     learners = {}
     scalers = {}
     for emotion in emotions:
-        learners[emotion] = SVM()
+        learners[emotion] = learner.SVM()
         
         if args.scaler_folder != None:
             fpath = os.path.join(args.scaler_folder, filename.get_filename_by_emotion(emotion, args.scaler_folder))

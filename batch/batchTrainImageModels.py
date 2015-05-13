@@ -14,7 +14,6 @@ from common import utils
 from common import filename
 from common import output
 from features import preprocessing
-from model import learner
 
 def get_arguments(argv):
 
@@ -93,6 +92,15 @@ if __name__ == '__main__':
     # main loop
     best_res = {}
 
+    if  'rbf' == args.svm_kernel:
+        import model.svm as learner
+        l = learner.SVM(loglevel=loglevel)
+    elif 'linear' == args.svm_kernel:
+        import model.linearsvm as learner
+        l = learner.LinearSVM(loglevel=loglevel)
+    else:
+        raise ValueError('unsupported kernel')
+
     for emotion_id in args.emotion_ids:
 
         emotion_name = filename.emotions['LJ40K'][emotion_id]
@@ -124,10 +132,12 @@ if __name__ == '__main__':
         for c in Cs:
             for g in gammas:
 
-                # we do not do scaling in learner
-                l = learner.SVM(X=X_train, y=y_train, feature_name=fused_dataset.get_feature_name(), scaling=False, loglevel=loglevel)
+                l.set(X=X_train, y=y_train, feature_name=fused_dataset.get_feature_name())
+                temp_str = '[%s] start training: c=%f' % (emotion_name, c)
+                if 'rbf' == args.svm_kernel:
+                    temp_str += ', gamma=%f' % (g)
+                logger.info(temp_str)
 
-                logger.info('[%s] start training: c=%f, gamma=%f' % (emotion_name, c, g))
                 start_time = time.time()
                 l.train(C=c, kernel=args.svm_kernel, gamma=g, prob=True, random_state=np.random.RandomState(0))
                 end_time = time.time()
@@ -138,21 +148,11 @@ if __name__ == '__main__':
                 l.dump_model(fpath)
 
                 if not args.no_predict:
-                    result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True)
-                    if result['score'] > best_res[emotion_name]['score']:
-                        best_res[emotion_name]['score'] = result['score']
+                    result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True, decision_value=True)
+                    if result['score'] > best_res[emotion_name]['score']:                        
                         best_res[emotion_name]['gamma'] = g
                         best_res[emotion_name]['c'] = c
-                        best_res[emotion_name]['X_predict_prob'] = result['X_predict_prob']
-                        best_res[emotion_name]['auc'] = result['auc']
-
-        if not args.no_predict:
-            logger.info("[%s] best score = %f" % (emotion_name, best_res[emotion_name]['score']))
-            logger.info("[%s] best gamma = %f" % (emotion_name, best_res[emotion_name]['gamma']))
-            logger.info("[%s] best c = %f" % (emotion_name, best_res[emotion_name]['c']))
-            logger.info("[%s] best prob = %s" % (emotion_name, str(best_res[emotion_name]['X_predict_prob'])))
-            logger.info("[%s] best auc = %f" % (emotion_name, best_res[emotion_name]['auc']))
-
+                        best_res[emotion_name]['results'] = result
 
     if not args.no_predict:
         fpath = os.path.join(args.output_folder, 'best_results_%s.pkl' % (str(emotion_ids)))

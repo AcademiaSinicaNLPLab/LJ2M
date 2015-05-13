@@ -1,6 +1,11 @@
 
 import cPickle as pickle
 import logging
+import numpy as np
+
+def sigmoid(x):
+    neg_x = map(lambda v: v*(-1), x)
+    return 1 / (1 + np.exp(neg_x))
 
 def save_pkl_file(clz, filename):
     try:
