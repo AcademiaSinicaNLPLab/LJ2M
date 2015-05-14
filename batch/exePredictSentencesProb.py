@@ -17,9 +17,6 @@ def get_arguments(argv):
     parser = argparse.ArgumentParser(description='predict sentence probabilities')
     parser.add_argument('model_folder', metavar='MODEL_FOLDER', 
                         help='folder that contains models files')
-    # ToDo: fused feature and feature list file
-    #parser.add_argument('feature_folder', metavar='FEATURE_FOLDER', 
-    #                    help='folder that contains feature files')
     parser.add_argument('feature_list_file', metavar='FEATURE_LIST_FILE', 
                         help='This program will fuse the features listed in this file and feed all of them to the classifier. The file format is in JSON. See "feautre_list_ex.json" for example')
 
@@ -99,9 +96,6 @@ if __name__ == '__main__':
             os.makedirs(emotion_dir)
 
         # load test data
-        #fpath = os.path.join(args.feature_folder, filename.get_filename_by_emotion(emotion_name, args.feature_folder))
-        #logger.info('loading test data %s' % (fpath))
-        #test_data = utils.load_pkl_file(fpath)
         feature_files = [(feature_name, preprocessing.FeatureList.get_full_data_path(emotion_name, data_path)) for feature_name, data_path in feature_list]
         fused_features = preprocessing.FusedDocSentence(feature_files, loglevel=loglevel)
         
@@ -111,7 +105,6 @@ if __name__ == '__main__':
             X_test = fused_features.get_fused_feature_vector_by_idx(doc_idx)
             if args.scaler_folder != None:
                 X_test = scalers[emotion_name].transform(X_test)
-            #X_test = scalers[emotion_name].transform(test_data[doc_idx]['X'])
 
             # init result matrix
             probs = []
