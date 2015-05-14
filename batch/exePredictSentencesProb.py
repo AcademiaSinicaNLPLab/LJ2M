@@ -3,27 +3,33 @@ import os
 import argparse
 import logging
 import csv
+import numpy as np
 
 from common import utils
 from common import filename
 from common import output
+from features import preprocessing
 
-import model.svm as learner
+from model import linearsvm
+from model import svm
 
 def get_arguments(argv):
     parser = argparse.ArgumentParser(description='predict sentence probabilities')
     parser.add_argument('model_folder', metavar='MODEL_FOLDER', 
                         help='folder that contains models files')
     # ToDo: fused feature and feature list file
-    parser.add_argument('feature_folder', metavar='FEATURE_FOLDER', 
-                        help='folder that contains feature files')
+    #parser.add_argument('feature_folder', metavar='FEATURE_FOLDER', 
+    #                    help='folder that contains feature files')
+    parser.add_argument('feature_list_file', metavar='FEATURE_LIST_FILE', 
+                        help='This program will fuse the features listed in this file and feed all of them to the classifier. The file format is in JSON. See "feautre_list_ex.json" for example')
 
-
+    parser.add_argument('-l', '--linear', action='store_true', default=False, 
+                        help='use liblinear to predict')
     parser.add_argument('-e', '--emotion_ids', metavar='EMOTION_IDS', type=utils.parse_range, default=[0], 
                         help='a list that contains emotion ids ranged from 0-39 (DEFAULT: 0). This can be a range expression, e.g., 3-6,7,8,10-15')
     parser.add_argument('-s', '--scaler_folder', metavar='SCALER_FOLDER', default=None, 
                         help='folder that contains scaler files')
-    parser.add_argument('-o', '--output_folder', metavar='OUTPUT_FOLDER', default=None, 
+    parser.add_argument('-o', '--output_folder', metavar='OUTPUT_FOLDER', default=output.get_folder_name_with_time('proba'), 
                         help='output folder, if not specified, create it with name equal to system time')
     parser.add_argument('-i', '--dump_png', action='store_true', default=False, 
                         help='dump .png images (Default: False)')
@@ -52,22 +58,24 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
 
     # pre-checking
-    if None != args.output_folder:
-        if not os.path.exists(args.output_folder):
-            logger.info('create output folder %s' % (args.output_folder))
-            os.makedirs(args.output_folder)
-    else:
-        args.output_folder = output.create_folder_with_time('probs')
+    if not os.path.exists(args.output_folder):
         logger.info('create output folder %s' % (args.output_folder))
+        os.makedirs(args.output_folder)
 
+    # load feature list
+    feature_list = preprocessing.FeatureList(args.feature_list_file)
     emotions = filename.emotions['LJ40K']
 
-
     # load models
+    if args.linear:
+        import model.linearsvm as learner
+    else:
+        import model.svm as learner
+
     learners = {}
     scalers = {}
     for emotion in emotions:
-        learners[emotion] = learner.SVM()
+        learners[emotion] = linearsvm.LinearSVM(loglevel=loglevel) if args.linear else svm.SVM(loglevel=loglevel)
         
         if args.scaler_folder != None:
             fpath = os.path.join(args.scaler_folder, filename.get_filename_by_emotion(emotion, args.scaler_folder))
@@ -79,7 +87,6 @@ if __name__ == '__main__':
 
 
     # main loop
-    
     for emotion_id in args.emotion_ids:
 
         emotion_name = emotions[emotion_id]
@@ -92,27 +99,32 @@ if __name__ == '__main__':
             os.makedirs(emotion_dir)
 
         # load test data
-        fpath = os.path.join(args.feature_folder, filename.get_filename_by_emotion(emotion_name, args.feature_folder))
-        logger.info('loading test data %s' % (fpath))
-        test_data = utils.load_pkl_file(fpath)
-
+        #fpath = os.path.join(args.feature_folder, filename.get_filename_by_emotion(emotion_name, args.feature_folder))
+        #logger.info('loading test data %s' % (fpath))
+        #test_data = utils.load_pkl_file(fpath)
+        feature_files = [(feature_name, preprocessing.FeatureList.get_full_data_path(emotion_name, data_path)) for feature_name, data_path in feature_list]
+        fused_features = preprocessing.FusedDocSentence(feature_files, loglevel=loglevel)
         
-        for doc_idx in range(len(test_data)):
+        for doc_idx in range(fused_features.get_num_doc()):
             logger.debug('predicting doc %u' % (doc_idx))
 
-            X_test = scalers[emotion_name].transform(test_data[doc_idx]['X'])
+            X_test = fused_features.get_fused_feature_vector_by_idx(doc_idx)
+            if args.scaler_folder != None:
+                X_test = scalers[emotion_name].transform(X_test)
+            #X_test = scalers[emotion_name].transform(test_data[doc_idx]['X'])
 
             # init result matrix
             probs = []
             n_sentence = X_test.shape[0]
+            y_test = np.array([1]*n_sentence)
             for i in range(n_sentence):
                 probs.append(dict.fromkeys(emotions))
 
             # predict on 40 models
             for classifier_emotion in emotions:
                 logger.debug('predicting with "%s" classifier' % (classifier_emotion))
-                results = learners[classifier_emotion].predict(X_test, None, X_predict_prob=True)
-                prob_list = results['X_predict_prob'].tolist()
+                results = learners[classifier_emotion].predict(X_test, y_test, X_predict_prob=True)
+                prob_list = results['X_predict_prob']
                 for i in range(n_sentence):
                     probs[i][classifier_emotion] = prob_list[i] 
 

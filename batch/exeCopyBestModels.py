@@ -66,10 +66,10 @@ if __name__ == '__main__':
 
     results = output.PredictionResult(args.result_file)
 
-    args.output_model_folder = output.check_or_create_folder(args.output_model_folder)
+    output.create_folder(args.output_model_folder)
     logger.info('output_model_folder = %s' % (args.output_model_folder))
 
-    args.output_scaler_folder = output.check_or_create_folder(args.output_scaler_folder)
+    output.create_folder(args.output_scaler_folder)
     logger.info('output_scaler_folder = %s' % (args.output_scaler_folder))
 
     for e in filename.emotions['LJ40K']:
@@ -79,6 +79,13 @@ if __name__ == '__main__':
         scaler_fname = filename.get_scaler_filename(e)
 
         # copy files
-        copyfile(os.path.join(args.model_folder, model_fname), os.path.join(args.output_model_folder, model_fname))
-        copyfile(os.path.join(args.scaler_folder, scaler_fname), os.path.join(args.scaler_model_folder, scaler_fname))
+        src = os.path.join(args.model_folder, model_fname)
+        dest = os.path.join(args.output_model_folder, model_fname)
+        logger.info('copy file from "%s" to "%s"' % (src, dest))
+        copyfile(src, dest)
+
+        src = os.path.join(args.scaler_folder, scaler_fname)
+        dest = os.path.join(args.output_scaler_folder, scaler_fname)
+        logger.info('copy file from "%s" to "%s"' % (src, dest))
+        copyfile(src, dest)
 

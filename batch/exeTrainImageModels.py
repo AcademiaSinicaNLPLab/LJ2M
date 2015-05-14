@@ -120,7 +120,7 @@ if __name__ == '__main__':
             utils.save_pkl_file(scaler, fpath)
 
         best_res[emotion_name] = {}
-        best_res[emotion_name]['score'] = 0
+        best_score = 0
 
         if args.parameter_file != None:
             Cs = [param_dict[emotion_name][0]]
@@ -149,8 +149,9 @@ if __name__ == '__main__':
 
                 if not args.no_predict:
                     result = trainer.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True, decision_value=True)
-                    if result['score'] > best_res[emotion_name]['score']:    
-                        logger.info('save best result!!')                    
+                    if result['score'] > best_score:    
+                        logger.info('save best result!!')
+                        best_score = result['score']                    
                         best_res[emotion_name]['gamma'] = g
                         best_res[emotion_name]['c'] = c
                         best_res[emotion_name]['results'] = result

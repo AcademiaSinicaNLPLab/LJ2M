@@ -7,6 +7,7 @@ import random
 import pickle
 import json
 import numpy as np
+from collections import OrderedDict
 
 from common import filename
 from common import utils
@@ -67,6 +68,57 @@ class FeatureList:
         return paths
 
 
+class DocSentence:
+    """
+        store sentence-level features for all documents in one emotion
+    """
+    def __init__(self, file_path, **kwargs):
+        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
+
+        self.logger.info('load feature file %s' % (file_path))
+        Xy = utils.load_pkl_file(file_path)
+        n_doc = len(Xy)
+        self.X = [Xy[idoc]['X'] for idoc in range(n_doc)]
+
+    def get_feature_vector_by_idx(self, idx):
+        return self.X[idx]
+
+    def get_num_doc(self):
+        return len(self.X)
+
+class FusedDocSentence:
+    """
+        store multiple DocSentence
+        feature_files in tuple (feature_name, file_path)
+    """
+    def __init__(self, feature_files, **kwargs):
+        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
+
+        self.features = OrderedDict()
+        for feature_name, feature_file in feature_files:
+            self.features[feature_name] = DocSentence(feature_file)
+
+    def get_fused_feature_vector_by_idx(self, doc_idx):
+
+        fused_feature_vector = None
+        for k, v in self.features.iteritems():
+            if fused_feature_vector is None:
+                fused_feature_vector = v.get_feature_vector_by_idx(doc_idx)
+            else:
+                fused_feature_vector = np.concatenate((fused_feature_vector, v.get_feature_vector_by_idx(doc_idx)), axis=1)
+
+        return fused_feature_vector
+
+    def get_num_doc(self):
+        for k, v in self.features.iteritems():
+            return v.get_num_doc()
+
 class Dataset:
     """
         store train/dev/test datasets
@@ -83,7 +135,7 @@ class Dataset:
 
         # only use 40 emotions
         self.emotions = filename.emotions['LJ40K']
-        self.X = {}
+        self.X = OrderedDict()
 
         for emotion in self.emotions:
 

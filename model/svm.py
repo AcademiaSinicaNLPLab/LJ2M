@@ -53,8 +53,6 @@ class SVM(LearnerBase):
         self.y = y
         self.feature_name = feature_name
         self.kfold_results = []
-        self.Xs = {}
-        self.ys = {}
 
 
     def set(self, X, y, feature_name):
@@ -146,13 +144,17 @@ class SVM(LearnerBase):
             self.logger.info('y_predict = %f', results['y_predict'])
 
         if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:            
-            results.update({'X_predict_prob': X_predict_prob[:, 1]})
+            results.update({'X_predict_prob': X_predict_prob[:, 1].tolist()})
             self.logger.info('X_predict_prob = %s', str(results['X_predict_prob']))
 
         if 'auc' in kwargs and kwargs['auc'] == True:
             fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
             results.update({'auc': auc(fpr, tpr)})
             self.logger.info('auc = %f', results['auc'])
+
+        if 'decision_value' in kwargs and kwargs['decision_value'] == True:
+            results.update({'decision_value': self.clf.decision_function(X_test)})
+            self.logger.debug('decision_value = %s', str(results['decision_value']))
 
         return results     
     

@@ -1,0 +1,10 @@
+[
+    {
+        "name": "w2v300Sentence",
+        "data": {
+            "dir": "/corpus/LJ40K/data/featurevecs/raw/w2vStanford_rmP_sentences",
+            "file_prefix": "w2vStanford_rmP_sentences",
+            "file_postfix": "Xy.pkl"
+        }
+    }
+]
