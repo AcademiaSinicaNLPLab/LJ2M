@@ -9,4 +9,4 @@ output_filename = 'zipped_best_results.pkl'
 res.dump_results(output_filename)
 
 summary_filename = 'best_result_summary.csv'
-res.dump_
+res.dump_summary(summary_filename)

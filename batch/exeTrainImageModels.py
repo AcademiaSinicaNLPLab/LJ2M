@@ -149,7 +149,8 @@ if __name__ == '__main__':
 
                 if not args.no_predict:
                     result = trainer.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True, decision_value=True)
-                    if result['score'] > best_res[emotion_name]['score']:                        
+                    if result['score'] > best_res[emotion_name]['score']:    
+                        logger.info('save best result!!')                    
                         best_res[emotion_name]['gamma'] = g
                         best_res[emotion_name]['c'] = c
                         best_res[emotion_name]['results'] = result
