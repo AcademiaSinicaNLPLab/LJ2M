@@ -35,8 +35,11 @@ def get_filename_by_emotion(emotion, path):
         raise ValueError('scaler file name error')
     return fname[0]
 
-#def get_model_filename(emotion):
-#     return '_'.joing([emotion, 'raw.npz'])
+def get_model_filename(emotion, c, g, ext='pkl'):
+    return 'model_%s_c%f_g%f.%s' % (emotion, c, g, ext)
+
+def get_scaler_filename(emotion, ext='pkl'):
+     return 'scaler_%s.%s' % (emotion, ext)
 
 # def get_train_data_filename(prefix, emotion):
 #      return '_'.joing([prefix, emotion, 'train.npz'])

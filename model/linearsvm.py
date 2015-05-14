@@ -129,14 +129,12 @@ class LinearSVM(LearnerBase):
 
         if 'y_predict' in kwargs and kwargs['y_predict'] == True:
             results.update({'y_predict': p_labels})
-            self.logger.info('y_predict = %s', str(p_labels))
+            self.logger.debug('y_predict = %s', str(p_labels))
 
-        probas = None
         if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:
-            if probas is None:
-                probas = LinearSVM._calculate_sigmoid(p_vals)
+            probas = LinearSVM._calculate_sigmoid(p_vals)
             results.update({'X_predict_prob': probas.tolist()})
-            self.logger.info('X_predict_prob = %s', str(probas.tolist()))
+            self.logger.debug('X_predict_prob = %s', str(probas.tolist()))
 
         if 'auc' in kwargs and kwargs['auc'] == True:
             fpr, tpr, thresholds = roc_curve(_y, p_vals)    # same result as using sigmoid probability for p_vals
@@ -145,6 +143,6 @@ class LinearSVM(LearnerBase):
 
         if 'decision_value' in kwargs and kwargs['decision_value'] == True:
             results.update({'decision_value': p_vals})
-            self.logger.info('decision_value = %s', str(p_vals))
+            self.logger.debug('decision_value = %s', str(p_vals))
 
         return results

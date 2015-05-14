@@ -7,12 +7,21 @@ import pymongo
 
 from PIL import Image, ImageDraw
 
+import common.filename as naming
 from common import utils
 
 
-def create_folder_with_time(prefix):
+def check_or_create_folder(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+def get_folder_name_with_time(prefix):
     t = time.strftime('%y%m%d%H%M%S', time.localtime(time.time()))
     name = '%s_%s' % (prefix, t)
+    return name
+
+def create_folder_with_time(prefix):
+    name = get_folder_name_with_time(prefix)
 
     if not os.path.exists(name):
         os.makedirs(name)
@@ -29,7 +38,73 @@ def dump_list_to_csv(file_name, data):
     w = csv.writer(open(file_name, 'w'))
     for row in data:
         w.writerow(row)
-     
+
+
+class PredictionResult:
+    """
+    self.results[emotion_name]['gamma']
+    self.results[emotion_name]['c']
+    self.results[emotion_name]['results']['score']
+    self.results[emotion_name]['results']['auc']
+    """
+    def __init__(self, result_files=[], **kwargs):
+
+        if type(result_files) is list:
+            self.load_results(result_files)
+        elif type(result_files) is str:
+            self.load_results([result_files])
+        else:
+            raise ValueError('result_files type error' )
+
+    def load_results(self, result_files=[]):
+        self.results = {}
+        for f in result_files:
+            res = utils.load_pkl_file(f)
+            self.results.update(res)
+
+    def dump_results(self, filename):
+        utils.save_pkl_file(self.results, filename)
+
+    def _write_csv(self, filename, data):
+        with open(filename, 'w') as f:
+            w = csv.writer(f)
+            w.writerows(data)
+
+    def dump_accuracy(self, filename):
+        data = []
+        data.append(naming.emotions['LJ40K'])
+        data.append([self.results[e]['results']['score'] for e in naming.emotions['LJ40K']])
+        self._write_csv(filename, data)
+        
+    def dump_auc(self, filename):
+        data = []
+        data.append(naming.emotions['LJ40K'])
+        data.append([self.results[e]['results']['auc'] for e in naming.emotions['LJ40K']])
+        self._write_csv(filename, data)
+
+    def dump_summary(self, filename):
+        data = []
+        data.append(['', 'AVERAGE']+naming.emotions['LJ40K'])
+
+        scores = [self.results[e]['results']['score'] for e in naming.emotions['LJ40K']]
+        average_score = float(sum(scores))/len(scores)
+        data.append(['ACCURACY', average_score] + scores)
+
+        aucs = [self.results[e]['results']['auc'] for e in naming.emotions['LJ40K']]
+        average_auc = float(sum(aucs))/len(aucs)
+        data.append(['AUC', average_auc] + aucs)
+
+        Cs = [self.results[e]['c'] for e in naming.emotions['LJ40K']]
+        data.append(['C', ''] + Cs)
+
+        gammas = [self.results[e]['gamma'] for e in naming.emotions['LJ40K']]
+        data.append(['gamma', ''] + gammas)
+
+        self._write_csv(filename, data)
+
+    def get_params_by_emotion(self, emotion):
+        return (float(self.results[emotion]['c']), float(self.results[emotion]['gamma']))
+
 
 class EmotionProb:
     """
@@ -170,7 +245,5 @@ class EmotionProb:
 
     def load(self, filename):
         self = utils.load_pkl_file(filename)
-
-
 
 

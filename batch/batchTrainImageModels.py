@@ -94,10 +94,10 @@ if __name__ == '__main__':
 
     if  'rbf' == args.svm_kernel:
         import model.svm as learner
-        l = learner.SVM(loglevel=loglevel)
+        trainer = learner.SVM(loglevel=loglevel)
     elif 'linear' == args.svm_kernel:
         import model.linearsvm as learner
-        l = learner.LinearSVM(loglevel=loglevel)
+        trainer = learner.LinearSVM(loglevel=loglevel)
     else:
         raise ValueError('unsupported kernel')
 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
             X_train = scaler.fit_transform(X_train)
             X_dev = scaler.transform(X_dev)
             
-            fpath = os.path.join(args.output_folder, 'scaler_%s.pkl' % (emotion_name))
+            fpath = os.path.join(args.output_folder, filename.get_scaler_filename(emotion_name, 'pkl'))
             logger.info('dumpping scaler to %s' % (fpath))
             utils.save_pkl_file(scaler, fpath)
 
@@ -132,30 +132,30 @@ if __name__ == '__main__':
         for c in Cs:
             for g in gammas:
 
-                l.set(X=X_train, y=y_train, feature_name=fused_dataset.get_feature_name())
+                trainer.set(X=X_train, y=y_train, feature_name=fused_dataset.get_feature_name())
                 temp_str = '[%s] start training: c=%f' % (emotion_name, c)
                 if 'rbf' == args.svm_kernel:
                     temp_str += ', gamma=%f' % (g)
                 logger.info(temp_str)
 
                 start_time = time.time()
-                l.train(C=c, kernel=args.svm_kernel, gamma=g, prob=True, random_state=np.random.RandomState(0))
+                trainer.train(C=c, kernel=args.svm_kernel, gamma=g, prob=True, random_state=np.random.RandomState(0))
                 end_time = time.time()
                 logger.info('[%s] training time = %f s' % (emotion_name, end_time-start_time))
 
-                fpath = os.path.join(args.output_folder, 'model_%s_c%f_g%f.pkl' % (emotion_name, c, g))
+                fpath = os.path.join(args.output_folder, filename.get_model_filename(emotion_name, c, g, 'pkl'))
                 logger.info('[%s] dumpping model to %s' % (emotion_name, fpath))
-                l.dump_model(fpath)
+                trainer.dump_model(fpath)
 
                 if not args.no_predict:
-                    result = l.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True, decision_value=True)
+                    result = trainer.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True, decision_value=True)
                     if result['score'] > best_res[emotion_name]['score']:                        
                         best_res[emotion_name]['gamma'] = g
                         best_res[emotion_name]['c'] = c
                         best_res[emotion_name]['results'] = result
 
     if not args.no_predict:
-        fpath = os.path.join(args.output_folder, 'best_results_%s.pkl' % (str(emotion_ids)))
+        fpath = os.path.join(args.output_folder, 'best_results_%s.pkl' % (str(args.emotion_ids)))
         logger.info('dumpping best results to %s' % (fpath))
         utils.save_pkl_file(best_res, fpath)           
         # ToDo: make csv file
