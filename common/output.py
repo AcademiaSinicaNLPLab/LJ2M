@@ -227,7 +227,7 @@ class EmotionProb:
                                 mongo_addr='doraemon.iis.sinica.edu.tw', 
                                 color_order=('feelit', 'color.order'), 
                                 color_map=('feelit', 'color.map'), 
-                                color_theme='default'):
+                                color_theme='black'):
 
         ### connect to mongodb
         mongo_conn = pymongo.MongoClient(mongo_addr)
