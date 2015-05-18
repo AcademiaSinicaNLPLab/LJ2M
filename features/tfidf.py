@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import sys, os
+sys.path.append('../')
 from collections import OrderedDict
 import numpy as np
 from collections import Counter
@@ -115,17 +116,17 @@ class TFIDF(FeatureBase):
         pass
     def fetch(self):
         pass
-    def push(self, db_name, collection_name, emotion, doc_ID, tfidf_values):
-        client = MongoClient('doraemon.iis.sinica.edu.tw:27017')
-        db = client[db_name]
-        collection = db[collection_name]
-        collection.update_one({'emotion':emotion,'doc_ID':doc_ID}, {'$set':{self.tfidf_type:tfidf_values}})
+    def push(self):
+        pass
 
 class Corpus:
-    def __init__(self, dataset, global_loadpath, global_dumppath):
-        self.global_loadpath = global_loadpath
+    def __init__(self, global_dumppath, db_name, collection_name):
+        client = MongoClient('doraemon.iis.sinica.edu.tw:27017')
+        db = client[db_name]
+
+        self.collection = db[collection_name]
         self.global_dumppath = global_dumppath
-        self.global_emotions = filename.emotions[dataset]
+
         self.LocalInfo = []
         self.GlobalInfo = {}
         self.DatasetInfo = {}
@@ -159,7 +160,7 @@ class Corpus:
         print 'calculate max_nt'
         self.DatasetInfo['max_nt'] = max([self.GlobalInfo[w]['nt'] for w in self.GlobalInfo])
 
-    def build_global_info(self):
+    def build_global_info(self, dataset, global_loadpath):
         #--------------------------------------------------------------------------       
         T = 0                  ## the universe of terms
         D = 0                  ## the universe of documents
@@ -167,12 +168,13 @@ class Corpus:
         fd_ts = []             ## the number of occurrences of term t in document d
         total_words_count = 0  ## use for counting avg_ld
         avg_ld = 0             ## average document length in D
+        global_emotions = filename.emotions[dataset]
         #--------------------------------------------------------------------------
         if not os.path.exists(self.global_dumppath+'/GlobalInfo.pkl') or not os.path.exists(self.global_dumppath+'/DatasetInfo.pkl'):
-            # self.global_emotions = self.global_emotions[0:5]
-            for i,emotion in enumerate(self.global_emotions):
-                docs = self.load_raw_data(emotion, self.global_loadpath)
-                # docs = docs[0:800]
+            # global_emotions = global_emotions[0:5]
+            for i,emotion in enumerate(global_emotions):
+                docs = self.load_raw_data(emotion, global_loadpath)
+                docs = docs[0:800]
                 for d, doc in enumerate(docs):
                     wordlist = sum(doc, [])
 
@@ -195,7 +197,7 @@ class Corpus:
                             self.GlobalInfo[word]['word_total_count'] = dict_fd_t[word]
                             self.GlobalInfo[word]['ft_D'] = 1
                 del docs    
-                print '(%d/%d) ' % (i+1,len(self.global_emotions)) +emotion+' Global preprocessing complete!'
+                print '(%d/%d) ' % (i+1,len(global_emotions)) +emotion+' Global preprocessing complete!'
 
             avg_ld = total_words_count / D
             T = len(self.GlobalInfo)
@@ -216,19 +218,11 @@ class Corpus:
             self.GlobalInfo = pickle.load(open(self.global_dumppath+'/GlobalInfo.pkl','rb'))
             self.DatasetInfo = pickle.load(open(self.global_dumppath+'/DatasetInfo.pkl','rb'))
 
-    def build_local_info(self, dataset, local_loadpath, db_name, collection_name):
+    def build_local_info(self, dataset, local_loadpath):
         '''
         deal with training data and testing data
         '''
         self.local_emotions = filename.emotions[dataset]
-
-        client = MongoClient('doraemon.iis.sinica.edu.tw:27017')
-        db = client[db_name]
-        if collection_name not in db.collection_names():
-            push = True
-            self.collection = db[collection_name]
-        else: 
-            push = False
 
         # self.local_emotions = self.local_emotions[0:2]
         for e_ID, emotion in enumerate(self.local_emotions):
@@ -237,7 +231,6 @@ class Corpus:
             # docs = docs[0:5]
             for doc_ID, doc in enumerate(docs):
                 wordlist = sum(doc, [])
-
                 doc_info = {}
 
                 ld = len(wordlist)
@@ -248,21 +241,25 @@ class Corpus:
                 ## e.g. fd_ts.items() = [('happy',3), ('to',10), ('code',5)]
                 doc_info['fd_t'] = fd_ts
                 emotion_info.append(doc_info)
-                if push:
-                    self.push_local_info(emotion, e_ID, doc_ID, ld, fd_ts)
-            
+
             self.LocalInfo.append(emotion_info)
             print '(%d/%d) ' % (e_ID+1,len(self.local_emotions)) +emotion+' Local preprocessing complete!'
-
-
-    def push_local_info(self, emotion, e_ID, doc_ID, ld, fd_ts):
+    
+    def build_doc_db_format(self, emotion, e_ID, doc_ID, ld, fd_ts, tfidf_type, tfidf_values):
         doc_info = {}
         doc_info['emotion'] = emotion
         doc_info['e_ID'] = e_ID
         doc_info['doc_ID'] = doc_ID
         doc_info['ld'] = ld
         doc_info['fd_t'] = fd_ts
-        self.collection.insert_one(doc_info)
+        doc_info['tfidf_type'] = tfidf_type
+        doc_info['tfidf_value'] = tfidf_values
+        return doc_info
+    def check_tfidftype_exist_in_db(self, tfidf_type):
+        return False if self.collection.find_one({'tfidf_type':tfidf_type}) == None else True
+
+    def push_db(self, docs):
+        self.collection.insert_many(docs)
 
     def update_local_info(self, e_ID, doc_ID, tfidf_type, tfidf_values):
         self.LocalInfo[e_ID][doc_ID][tfidf_type] = tfidf_values
@@ -290,42 +287,46 @@ import sys, os
 sys.path.append("../")
 
 # from features.tfidftest3 import TFIDF
-global_dataset_name = 'LJ2M'
-local_dataset_name = 'LJ2M'
-db_name = 'LJ2M'
+global_dataset_name = 'LJ40K'
+local_dataset_name = 'LJ40K'
+db_name = 'LJ40K'
 collection_name = 'TFIDF_feature'
-global_dataset_load_path = '/corpus/LJ2M/data/pkl/lj2m_wordlists'
-local_dataset_load_path = '/corpus/LJ2M/data/pkl/lj2m_wordlists'
+global_dataset_load_path = '/corpus/LJ40K/data/pkl/lj40k_wordlists'
+local_dataset_load_path = '/corpus/LJ40K/data/pkl/lj40k_wordlists'
 
 
-global_dumppath = '/corpus/LJ2M/data/features/tfidf'
-local_dumppath = '/corpus/LJ2M/data/features/tfidf/LocalInfo'
+global_dumppath = '/corpus/LJ40K/data/features/tfidf'
+local_dumppath = '/corpus/LJ40K/data/features/tfidf/LocalInfo'
 if local_dumppath and not os.path.exists(local_dumppath): os.makedirs(local_dumppath)
 
 
-c = Corpus(global_dataset_name, global_dataset_load_path, global_dumppath)
-c.build_global_info()
+c = Corpus(global_dumppath, db_name, collection_name)
+c.build_global_info(global_dataset_name, global_dataset_load_path)
 c.dump_global()
-c.build_local_info(local_dataset_name, local_dataset_load_path , db_name, collection_name)
+c.build_local_info(local_dataset_name, local_dataset_load_path)
 
 TFIDF_obj = TFIDF('tf3_idf2', k=1.0, b=0.8)
+tfidf_type = TFIDF_obj.tfidf_type
 LocalInfo = c.get_local_info()
 GlobalInfo = c.get_global_info()
 DatasetInfo = c.get_dataset_info()
 
-for e_ID, emotion_docs in enumerate(LocalInfo):
-    emotion = c.local_emotions[e_ID]
-    for doc_ID, docs in enumerate(emotion_docs):
-        tfidf_values = TFIDF_obj.calculate(DocInfo=docs, GlobalInfo=GlobalInfo, DatasetInfo=DatasetInfo) 
-        TFIDF_obj.push(db_name, collection_name, emotion, doc_ID, tfidf_values)
-        # c.update_local_info(e_ID, doc_ID, TFIDF_obj.tfidf_type, tfidf_values)
+if not c.check_tfidftype_exist_in_db(tfidf_type):
+    for e_ID, emotion_docs in enumerate(LocalInfo):
+        emotion = c.local_emotions[e_ID]
+        docs_to_db = []
+        for doc_ID, docs in enumerate(emotion_docs):
+            fd_ts = docs['fd_t']
+            ld = docs['ld']
+            tfidf_values = TFIDF_obj.calculate(DocInfo=docs, GlobalInfo=GlobalInfo, DatasetInfo=DatasetInfo)
+            docs_to_db.append(c.build_doc_db_format(emotion, e_ID, doc_ID, ld, fd_ts, tfidf_type, tfidf_values))
+            # c.update_local_info(e_ID, doc_ID, TFIDF_obj.tfidf_type, tfidf_values)
 
-    # save_path = os.path.join(local_dumppath, emotion+'_LocalInfo.pkl')
-    # c.dump_local(e_ID, save_path)
+        c.push_db(docs_to_db)
+        # save_path = os.path.join(local_dumppath, emotion+'_LocalInfo.pkl')
+        # c.dump_local(e_ID, save_path)
 
-    print '(%d/%d) ' % (e_ID+1,len(LocalInfo)) +emotion+' TFIDF complete!'
+        print '(%d/%d) ' % (e_ID+1,len(LocalInfo)) +emotion+' TFIDF complete!'
 
 
 ## 1. do npz pkl features, (load from mongo and filter <10), sentence level
-## 3. support idx
-## 4. 
