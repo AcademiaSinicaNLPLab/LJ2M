@@ -65,9 +65,9 @@ if __name__ == '__main__':
 
     # load models
     if args.linear:
-        import model.linearsvm as learner
+        from model import linearsvm
     else:
-        import model.svm as learner
+        from model import svm
 
     learners = {}
     scalers = {}

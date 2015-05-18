@@ -152,6 +152,11 @@ class Dataset:
                 assert Xy[i]['X'].shape[0] == 1         
                 self.X[emotion][i] = Xy[i]['X']
 
+    def get_all_dataset(self, emotion):
+        n = self.X[emotion].shape[0]
+        y = np.array([1]*n)
+        return self.X[emotion], y
+
     def get_dataset(self, emotion, idxs, set_type):
 
         idxs_typed = idxs[set_type]
@@ -218,12 +223,23 @@ class FusedDataset:
         '+'.join(self.feature_name)
 
     def get_dataset(self, emotion, set_type):
+        """
+            if set_type is None
+                we return all data
+        """
+        return self._fuse_data(emotion, set_type)
+
+    def _fuse_data(self, emotion, set_type):
 
         X = None
         y = None
         
         for dataset in self.datasets:
-            X_temp, y_temp = dataset.get_dataset(emotion, self.idxs, set_type)
+
+            if set_type is None:
+                X_temp, y_temp = dataset.get_all_dataset(emotion)
+            else:
+                X_temp, y_temp = dataset.get_dataset(emotion, self.idxs, set_type)
 
             if y == None:
                 y = y_temp

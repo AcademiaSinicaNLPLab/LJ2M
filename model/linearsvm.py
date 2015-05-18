@@ -137,9 +137,14 @@ class LinearSVM(LearnerBase):
             self.logger.debug('X_predict_prob = %s', str(probas.tolist()))
 
         if 'auc' in kwargs and kwargs['auc'] == True:
-            fpr, tpr, thresholds = roc_curve(_y, p_vals)    # same result as using sigmoid probability for p_vals
-            results.update({'auc': auc(fpr, tpr)})
-            self.logger.info('auc = %f', results['auc'])
+            all_one = [v for v in _y if v != 1]
+            if len(all_one) == 0:  
+                results.update({'auc': 0})
+                self.logger.info('auc cannot be predicted, because of lacking negative examples')
+            else:
+                fpr, tpr, thresholds = roc_curve(_y, p_vals)    # same result as using sigmoid probability for p_vals
+                results.update({'auc': auc(fpr, tpr)})
+                self.logger.info('auc = %f', results['auc'])
 
         if 'decision_value' in kwargs and kwargs['decision_value'] == True:
             results.update({'decision_value': p_vals})
