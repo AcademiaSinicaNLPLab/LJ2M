@@ -13,6 +13,8 @@ from .base import LearnerBase
 
 class SVM(LearnerBase):
     """
+    X, y should be numpy array
+
     usage:
         >> from models import learners
         >> learner = learners.SVM(loglevel=logging.ERROR) 
@@ -23,7 +25,7 @@ class SVM(LearnerBase):
         >>  for gamma in gammas:
         >>      score = learner.kFold(kfolder, classifier='SVM', 
         >>                          kernel='rbf', prob=False, 
-        >>                          C=c, scaling=True, gamma=gamma)
+        >>                          C=c, gamma=gamma)
         >>      scores.update({(c, gamma): score})
         >>
         >> best_C, best_gamma = max(scores.iteritems(), key=operator.itemgetter(1))[0]
@@ -36,15 +38,14 @@ class SVM(LearnerBase):
         """
         options:
             loglevel
-            do_scaling
             with_mean
             with_std
         """
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
+        self.logger.setLevel(loglevel)
 
-        self.do_scaling = False if 'scaling' not in kwargs else kwargs['scaling']
         self.with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         self.with_std = True if 'with_std' not in kwargs else kwargs['with_std']
 
@@ -52,8 +53,6 @@ class SVM(LearnerBase):
         self.y = y
         self.feature_name = feature_name
         self.kfold_results = []
-        self.Xs = {}
-        self.ys = {}
 
 
     def set(self, X, y, feature_name):
@@ -67,7 +66,7 @@ class SVM(LearnerBase):
     def _train(self, X_train, y_train, **kwargs):
         """
         required:
-            X_train, y_train
+            X_train, y_train: numpy array
 
         options:
             prob: True/False. Esimate probability during training
@@ -75,14 +74,8 @@ class SVM(LearnerBase):
             kernel: 'rbf', ...
             C: float; svm parameters
         """
-        self.logger.debug("%u samples x %u features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
-        self.logger.debug("%u samples in y_train" % ( y_train.shape[0] ))
-
-        if self.do_scaling:
-            self.scaler = StandardScaler(with_mean=self.with_mean, with_std=self.with_std)
-            ## apply scaling on X
-            self.logger.debug("applying a standard scaling with_mean=%d, with_std=%d" % (self.with_mean, self.with_std))
-            X_train = self.scaler.fit_transform(X_train)
+        self.logger.info("%u samples x %u features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
+        self.logger.info("%u samples in y_train" % ( y_train.shape[0] ))
 
         ## determine whether using predict or predict_proba
         self.prob = False if 'prob' not in kwargs else kwargs["prob"]
@@ -97,10 +90,11 @@ class SVM(LearnerBase):
         gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
         
         # we use weighted classifier because we might use skewed positive/negative data
+        self.logger.info('svm parameters: c=%f, gamma=%f, kernel=%s' % (C, gamma, kernel))
         #self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state, class_weight='auto')
         self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state)
         self.logger.debug("%s C=%f gamma=%f probability=%d" % (kernel, C, gamma, self.prob))
-
+        
         self.clf.fit(X_train, y_train)
     
     def dump_model(self, file_name):
@@ -109,26 +103,9 @@ class SVM(LearnerBase):
         except ValueError:
             self.logger.error("failed to dump %s" % (file_name))
 
-    def dump_scaler(self, file_name):
-        try:
-            if self.scaling:
-                pickle.dump(self.scaler, open(file_name, "w"))
-            else:
-                self.logger.warning("scaler doesn't exist")
-        except ValueError:
-            self.logger.error("failed to dump %s" % (file_name))
-
     def load_model(self, file_name):
         try:
             self.clf = pickle.load(open(file_name, "r"))
-        except ValueError:
-            self.logger.error("failed to load %s" % (file_name))
-
-    def load_scaler(self, file_name):
-        try:
-            self.scaler = pickle.load(open(file_name, "r"))
-            if self.scaler:
-                self.scaling = True
         except ValueError:
             self.logger.error("failed to load %s" % (file_name))
 
@@ -144,15 +121,17 @@ class SVM(LearnerBase):
             auc
         '''
         
-        if self.do_scaling:
-            self.logger.debug('scaler transforms X_test')
-            X_test = self.scaler.transform(X_test)
+        if y_test is not None:
+            self.logger.info('y_test = %s', str(y_test.shape))
 
-        self.logger.info('y_test = %s', str(y_test.shape))
-        y_predict = self.clf.predict(X_test)
-        X_predict_prob = self.clf.predict_proba(X_test) if self.clf.probability else 0
+        if 'weighted_score' in kwargs or 'y_predict' in kwargs:
+            y_predict = self.clf.predict(X_test)
+
+        if 'X_predict_prob' in kwargs or 'auc' in kwargs:
+            X_predict_prob = self.clf.predict_proba(X_test) if self.clf.probability else 0
+
         results = {}
-        if 'score' in kwargs and kwargs['score'] == True:
+        if 'score' in kwargs and kwargs['score'] == True:            
             results.update({'score': self.clf.score(X_test, y_test.tolist())})
             self.logger.info('score = %f', results['score'])
 
@@ -165,13 +144,17 @@ class SVM(LearnerBase):
             self.logger.info('y_predict = %f', results['y_predict'])
 
         if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:            
-            results.update({'X_predict_prob': X_predict_prob[:, 1]})
+            results.update({'X_predict_prob': X_predict_prob[:, 1].tolist()})
             self.logger.info('X_predict_prob = %s', str(results['X_predict_prob']))
 
         if 'auc' in kwargs and kwargs['auc'] == True:
             fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
             results.update({'auc': auc(fpr, tpr)})
             self.logger.info('auc = %f', results['auc'])
+
+        if 'decision_value' in kwargs and kwargs['decision_value'] == True:
+            results.update({'decision_value': self.clf.decision_function(X_test)})
+            self.logger.debug('decision_value = %s', str(results['decision_value']))
 
         return results     
     

@@ -1,13 +1,13 @@
 
 import os
 import sys
-sys.path.append('../')
 
 import logging
 import random
 import pickle
 import json
 import numpy as np
+from collections import OrderedDict
 
 from common import filename
 from common import utils
@@ -68,6 +68,57 @@ class FeatureList:
         return paths
 
 
+class DocSentence:
+    """
+        store sentence-level features for all documents in one emotion
+    """
+    def __init__(self, file_path, **kwargs):
+        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
+
+        self.logger.info('load feature file %s' % (file_path))
+        Xy = utils.load_pkl_file(file_path)
+        n_doc = len(Xy)
+        self.X = [Xy[idoc]['X'] for idoc in range(n_doc)]
+
+    def get_feature_vector_by_idx(self, idx):
+        return self.X[idx]
+
+    def get_num_doc(self):
+        return len(self.X)
+
+class FusedDocSentence:
+    """
+        store multiple DocSentence
+        feature_files in tuple (feature_name, file_path)
+    """
+    def __init__(self, feature_files, **kwargs):
+        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
+
+        self.features = OrderedDict()
+        for feature_name, feature_file in feature_files:
+            self.features[feature_name] = DocSentence(feature_file)
+
+    def get_fused_feature_vector_by_idx(self, doc_idx):
+
+        fused_feature_vector = None
+        for k, v in self.features.iteritems():
+            if fused_feature_vector is None:
+                fused_feature_vector = v.get_feature_vector_by_idx(doc_idx)
+            else:
+                fused_feature_vector = np.concatenate((fused_feature_vector, v.get_feature_vector_by_idx(doc_idx)), axis=1)
+
+        return fused_feature_vector
+
+    def get_num_doc(self):
+        for k, v in self.features.iteritems():
+            return v.get_num_doc()
+
 class Dataset:
     """
         store train/dev/test datasets
@@ -78,12 +129,13 @@ class Dataset:
                 loglevel
         """
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
 
         # only use 40 emotions
         self.emotions = filename.emotions['LJ40K']
-        self.X = {}
+        self.X = OrderedDict()
 
         for emotion in self.emotions:
 
@@ -99,6 +151,11 @@ class Dataset:
                 # make sure only one feature vector in each doc
                 assert Xy[i]['X'].shape[0] == 1         
                 self.X[emotion][i] = Xy[i]['X']
+
+    def get_all_dataset(self, emotion):
+        n = self.X[emotion].shape[0]
+        y = np.array([1]*n)
+        return self.X[emotion], y
 
     def get_dataset(self, emotion, idxs, set_type):
 
@@ -127,6 +184,10 @@ class Dataset:
             X[cnt:cnt+n_neg_typed] = self.X[neg_emotion][idxs_neg]
             cnt += n_neg_typed
         
+        #debug
+        #utils.save_pkl_file(X, 'debug_X_%s_%s.pkl' % (set_type, emotion))
+        #utils.save_pkl_file(y, 'debug_y_%s_%s.pkl' % (set_type, emotion))
+
         assert cnt == n_pos + n_neg
         return X, y
 
@@ -146,8 +207,9 @@ class FusedDataset:
         """
 
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
 
         self.idxs = idxs
         self.feature_name = []
@@ -161,12 +223,23 @@ class FusedDataset:
         '+'.join(self.feature_name)
 
     def get_dataset(self, emotion, set_type):
+        """
+            if set_type is None
+                we return all data
+        """
+        return self._fuse_data(emotion, set_type)
+
+    def _fuse_data(self, emotion, set_type):
 
         X = None
         y = None
         
         for dataset in self.datasets:
-            X_temp, y_temp = dataset.get_dataset(emotion, self.idxs, set_type)
+
+            if set_type is None:
+                X_temp, y_temp = dataset.get_all_dataset(emotion)
+            else:
+                X_temp, y_temp = dataset.get_dataset(emotion, self.idxs, set_type)
 
             if y == None:
                 y = y_temp
@@ -193,8 +266,9 @@ class RandomIndex:
         """
 
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s')
         self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.logger.setLevel(loglevel)
 
         self.zero_vector_idxs_filename = None if 'zero_vector_idxs_filename' not in kwargs else kwargs['zero_vector_idxs_filename']
         self.emotions = filename.emotions['LJ40K'] if 'emotions' not in kwargs else kwargs['emotions']
@@ -230,7 +304,7 @@ class RandomIndex:
         return (train, dev, test)
 
     def _get_random_subset(self, entire_set, nsubset):
-        dup = entire_set
+        dup = list(entire_set)
         random.shuffle(dup)
         return dup[:nsubset]
 
@@ -250,12 +324,17 @@ class RandomIndex:
         train = {}
         dev = {}
         test = {}
-
+        
         # generate positive indices
         for emotion in self.emotions:
 
             emotion_dir = os.path.join(root, emotion)
-            ndoc = len(os.listdir(emotion_dir)) - 2     # minus . and ..
+            ndoc = len([x for x in os.listdir(emotion_dir) if x.endswith('csv')])
+
+            # for LJ40K we do not have the extension on documents
+            if ndoc == 0:
+                ndoc = len([x for x in os.listdir(emotion_dir) if x[0].isdigit()])
+
             self.logger.info("emotion = %s, ndoc = %u", emotion, ndoc)
             
             train[emotion] = {}
@@ -267,7 +346,7 @@ class RandomIndex:
             self.logger.debug("len(dev[%s][%s]) = %u" % (emotion, emotion, len(dev[emotion][emotion]))) 
             self.logger.debug("len(test[%s][%s]) = %u" % (emotion, emotion, len(test[emotion][emotion]))) 
 
-        # remove the zero vectors collected by Sven for LJ2M
+        # remove the zero vectors collected by Sven for LJ2M, so we use the rule 'start with digit' to judge 
         if self.zero_vector_idxs_filename != None:
             self._remove_zero_vector_index(train, dev, test, pickle.load(open(self.zero_vector_idxs_filename)))
 

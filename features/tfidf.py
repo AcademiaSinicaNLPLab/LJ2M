@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import sys, os
-sys.path.append('../')
 from collections import OrderedDict
 import numpy as np
 from collections import Counter
@@ -238,6 +237,7 @@ class Corpus:
             # docs = docs[0:5]
             for doc_ID, doc in enumerate(docs):
                 wordlist = sum(doc, [])
+
                 doc_info = {}
 
                 ld = len(wordlist)

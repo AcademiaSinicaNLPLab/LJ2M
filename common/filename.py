@@ -1,4 +1,6 @@
 
+import os
+
 emotions = {}
 emotions['LJ40K'] = ['accomplished', 'aggravated', 'amused', 'annoyed', 'anxious', 'awake', 'blah', 'blank', 'bored', 'bouncy', 
                     'busy', 'calm', 'cheerful', 'chipper', 'cold', 'confused', 'contemplative', 'content', 'crappy', 'crazy', 
@@ -20,8 +22,24 @@ emotions['LJ2M'] = ['accomplished', 'aggravated', 'amused', 'angry', 'annoyed', 
                     'stressed', 'surprised', 'sympathetic', 'thankful', 'thirsty', 'thoughtful', 'tired', 'touched', 'uncomfortable', 'weird',
                     'working', 'worried']
 
-#def get_raw_data_filename(prefix, emotion):
-#     return '_'.joing([prefix, emotion, 'raw.npz'])
+emotions['LJ40K_feelingwheel'] = ['calm', 'content', 'contemplative', 'loved', 'accomplished', 'creative', 'amused', 'awake', 'cheerful', 'bouncy',
+                                   'hopeful', 'excited', 'good', 'chipper', 'happy', 'ecstatic', 'crazy', 'confused', 'crappy', 'anxious', 
+                                   'pissed off', 'aggravated', 'frustrated', 'annoyed', 'sleepy', 'tired', 'exhausted', 'lonely', 'cold', 'drained', 
+                                   'sick', 'bored', 'crushed', 'depressed', 'hungry', 'sad', 'blah', 'blank', 'busy', 'okay']
+
+
+def get_filename_by_emotion(emotion, path):
+    files = os.listdir(path)
+    fname = filter(lambda x: x.find(emotion) > 0, files)
+    if len(fname) != 1:
+        raise ValueError('scaler file name error')
+    return fname[0]
+
+def get_model_filename(emotion, c, g, ext='pkl'):
+    return 'model_%s_c%f_g%f.%s' % (emotion, c, g, ext)
+
+def get_scaler_filename(emotion, ext='pkl'):
+     return 'scaler_%s.%s' % (emotion, ext)
 
 # def get_train_data_filename(prefix, emotion):
 #      return '_'.joing([prefix, emotion, 'train.npz'])
