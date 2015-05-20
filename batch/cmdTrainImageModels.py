@@ -38,8 +38,8 @@ def get_arguments(argv):
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
                         help='do not perform feature scaling (DEFAULT: False)')
-    parser.add_argument('-r', '--no_predict', action='store_true', default=False,
-                        help='do not perform prediction on dev data (DEFAULT: False)')
+    # parser.add_argument('-r', '--no_predict', action='store_true', default=False,
+    #                     help='do not perform prediction on dev data (DEFAULT: False)')
 
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
@@ -143,21 +143,46 @@ if __name__ == '__main__':
                 end_time = time.time()
                 logger.info('[%s] training time = %f s' % (emotion_name, end_time-start_time))
 
-                fpath = os.path.join(args.output_folder, filename.get_model_filename(emotion_name, c, g, 'pkl'))
-                logger.info('[%s] dumpping model to %s' % (emotion_name, fpath))
-                trainer.dump_model(fpath)
+                # fpath = os.path.join(args.output_folder, filename.get_model_filename(emotion_name, c, g, 'pkl'))
+                # logger.info('[%s] dumpping model to %s' % (emotion_name, fpath))
+                # trainer.dump_model(fpath)
 
-                if not args.no_predict:
-                    result = trainer.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True, decision_value=True)
-                    if result['score'] > best_score:    
-                        logger.info('save best result!!')
-                        best_score = result['score']                    
-                        best_res[emotion_name]['gamma'] = g
-                        best_res[emotion_name]['c'] = c
-                        best_res[emotion_name]['results'] = result
+                #if not args.no_predict:
+                result = trainer.predict(X_dev, y_dev, score=True, X_predict_prob=True, auc=True, decision_value=True)
+                if result['score'] > best_score:    
+                    logger.info('save best result!!')
+                    best_score = result['score']                    
+                    best_res[emotion_name]['gamma'] = g
+                    best_res[emotion_name]['c'] = c
+                        #best_res[emotion_name]['results'] = result
 
-    if not args.no_predict:
-        fpath = os.path.join(args.output_folder, 'best_results_%s.pkl' % (str(args.emotion_ids)))
-        logger.info('dumpping best results to %s' % (fpath))
-        utils.save_pkl_file(best_res, fpath)           
-        # ToDo: make csv file
+        logger.info('**best parameters for "%s" is c=%f and g=%f' % (emotion_name, best_res[emotion_name]['c'], best_res[emotion_name]['gamma']))
+
+        # use X_dev and X_train to generate the final model
+        X = np.concatenate((X_train, X_dev), axis=0)
+        y = np.concatenate((y_train, y_dev), axis=0)
+        logger.info('X.shape=%s, X_train.shape=%s, X_dev.shape=%s' % (str(X.shape), str(X_train.shape), str(X_dev.shape)))
+        logger.info('y.shape=%s, y_train.shape=%s, y_dev.shape=%s' % (str(y.shape), str(y_train.shape), str(y_dev.shape)))
+
+        trainer.set(X=X, y=y, feature_name=fused_dataset.get_feature_name())
+        temp_str = '[%s] start training the best model: c=%f' % (emotion_name, best_res[emotion_name]['c'])
+        if 'rbf' == args.svm_kernel:
+            temp_str += ', gamma=%f' % (best_res[emotion_name]['gamma'])
+        logger.info(temp_str)
+
+        start_time = time.time()
+        trainer.train(C=best_res[emotion_name]['c'], kernel=args.svm_kernel, gamma=best_res[emotion_name]['gamma'], prob=True, random_state=np.random.RandomState(0))
+        end_time = time.time()
+        logger.info('[%s] training time = %f s' % (emotion_name, end_time-start_time))
+
+        if 'rbf' == args.svm_kernel:
+            fpath = os.path.join(args.output_folder, filename.get_model_filename(emotion_name, best_res[emotion_name]['c'], best_res[emotion_name]['gamma'], 'pkl'))
+        else: # linear
+            fpath = os.path.join(args.output_folder, filename.get_model_filename(emotion_name, best_res[emotion_name]['c'], None, 'pkl'))
+        logger.info('[%s] dumpping model to %s' % (emotion_name, fpath))
+        trainer.dump_model(fpath)
+
+    # if not args.no_predict:
+    fpath = os.path.join(args.output_folder, 'best_results_%s.pkl' % (str(args.emotion_ids)))
+    logger.info('dumpping best results to %s' % (fpath))
+    utils.save_pkl_file(best_res, fpath)           
