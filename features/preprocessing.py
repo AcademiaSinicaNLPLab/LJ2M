@@ -141,12 +141,9 @@ class Dataset:
 
             fpath = FeatureList.get_full_data_path(emotion, data_path)
             self.logger.info("load features from %s", fpath)
-            try:
-                Xy = pickle.load(open(fpath, "r"))
-            except ValueError:
-                self.logger.error("failed to load %s" % (fpath))
+            Xy = utils.load_pkl_file(fpath)
 
-            self.X[emotion] = np.zeros((len(Xy), 300), dtype="float32")
+            self.X[emotion] = np.zeros((len(Xy), Xy[0]['X'].shape[1]), dtype="float32")
             for i in range(len(Xy)):    
                 # make sure only one feature vector in each doc
                 assert Xy[i]['X'].shape[0] == 1         
@@ -167,7 +164,7 @@ class Dataset:
         y = ([1]*n_pos) + ([-1]*n_neg)
 
         # to save time we allocate the space first
-        X = np.zeros((n_pos+n_neg, 300), dtype="float32")
+        X = np.zeros((n_pos+n_neg, self.X[emotion].shape[1]), dtype="float32")
 
         X[:n_pos] = self.X[emotion][idxs_typed[emotion][emotion]]
         cnt = n_pos

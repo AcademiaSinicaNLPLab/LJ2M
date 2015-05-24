@@ -104,7 +104,7 @@ if __name__ == '__main__':
         
         X_train, y_train = fused_dataset.get_dataset(emotion_name, 'train')
         X_dev, y_dev = fused_dataset.get_dataset(emotion_name, 'dev')
-
+        import pdb; pdb.set_trace()
         if not args.no_scaling:
             scaler = StandardScaler(with_mean=True, with_std=True)
             logger.debug("applying standard scaling")
