@@ -321,6 +321,7 @@ class RandomIndex:
         train = {}
         dev = {}
         test = {}
+        ndocs = {}
         
         # generate positive indices
         for emotion in self.emotions:
@@ -331,7 +332,8 @@ class RandomIndex:
             # for LJ40K we do not have the extension on documents
             if ndoc == 0:
                 ndoc = len([x for x in os.listdir(emotion_dir) if x[0].isdigit()])
-
+            
+            ndocs[emotion] = ndoc
             self.logger.info("emotion = %s, ndoc = %u", emotion, ndoc)
             
             train[emotion] = {}
