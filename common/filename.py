@@ -36,7 +36,11 @@ def get_filename_by_emotion(emotion, path):
     return fname[0]
 
 def get_model_filename(emotion, c, g, ext='pkl'):
-    return 'model_%s_c%f_g%f.%s' % (emotion, c, g, ext)
+    if g is None:
+        ret = 'model_%s_c%f.%s' % (emotion, c, ext)
+    else:
+        ret = 'model_%s_c%f_g%f.%s' % (emotion, c, g, ext)
+    return ret
 
 def get_scaler_filename(emotion, ext='pkl'):
      return 'scaler_%s.%s' % (emotion, ext)
